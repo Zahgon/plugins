@@ -15,18 +15,13 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
-	"fmt"
 	"log"
-	"net/rpc"
 	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/containernetworking/cni/pkg/skel"
 	"github.com/containernetworking/cni/pkg/types"
-	current "github.com/containernetworking/cni/pkg/types/100"
 	"github.com/containernetworking/cni/pkg/version"
 	bv "github.com/containernetworking/plugins/pkg/utils/buildversion"
 )
@@ -111,73 +106,27 @@ func main() {
 }
 
 func cmdAdd(args *skel.CmdArgs) error {
+	_ = "STUB: not implemented"
 	// Plugin must return result in same version as specified in netconf
-	versionDecoder := &version.ConfigDecoder{}
-	confVersion, err := versionDecoder.Decode(args.StdinData)
-	if err != nil {
-		return err
-	}
-
-	result := &current.Result{CNIVersion: current.ImplementedSpecVersion}
-	if err := rpcCall("DHCP.Allocate", args, result); err != nil {
-		return err
-	}
-
-	return types.PrintResult(result, confVersion)
-}
-
-func cmdDel(args *skel.CmdArgs) error {
-	result := struct{}{}
-	return rpcCall("DHCP.Release", args, &result)
-}
-
-func cmdCheck(args *skel.CmdArgs) error {
-	// Plugin must return result in same version as specified in netconf
-	versionDecoder := &version.ConfigDecoder{}
-	// confVersion, err := versionDecoder.Decode(args.StdinData)
-	_, err := versionDecoder.Decode(args.StdinData)
-	if err != nil {
-		return err
-	}
-
-	result := &current.Result{CNIVersion: current.ImplementedSpecVersion}
-	return rpcCall("DHCP.Allocate", args, result)
-}
-
-func getSocketPath(stdinData []byte) (string, error) {
-	conf := NetConf{}
-	if err := json.Unmarshal(stdinData, &conf); err != nil {
-		return "", fmt.Errorf("error parsing socket path conf: %v", err)
-	}
-	if conf.IPAM.DaemonSocketPath == "" {
-		return defaultSocketPath, nil
-	}
-	return conf.IPAM.DaemonSocketPath, nil
-}
-
-func rpcCall(method string, args *skel.CmdArgs, result interface{}) error {
-	socketPath, err := getSocketPath(args.StdinData)
-	if err != nil {
-		return fmt.Errorf("error obtaining socketPath: %v", err)
-	}
-
-	client, err := rpc.DialHTTP("unix", socketPath)
-	if err != nil {
-		return fmt.Errorf("error dialing DHCP daemon: %v", err)
-	}
-
-	// The daemon may be running under a different working dir
-	// so make sure the netns path is absolute.
-	netns, err := filepath.Abs(args.Netns)
-	if err != nil {
-		return fmt.Errorf("failed to make %q an absolute path: %v", args.Netns, err)
-	}
-	args.Netns = netns
-
-	err = client.Call(method, args, result)
-	if err != nil {
-		return fmt.Errorf("error calling %v: %v", method, err)
-	}
-
 	return nil
 }
+
+func cmdDel(args *skel.CmdArgs) error { _ = "STUB: not implemented"; return nil }
+
+func cmdCheck(args *skel.CmdArgs) error {
+	_ = "STUB: not implemented"
+	// Plugin must return result in same version as specified in netconf
+	return nil
+}
+
+// confVersion, err := versionDecoder.Decode(args.StdinData)
+
+func getSocketPath(stdinData []byte) (string, error) { _ = "STUB: not implemented"; return "", nil }
+
+func rpcCall(method string, args *skel.CmdArgs, result interface{}) error {
+	_ = "STUB: not implemented"
+	return nil
+}
+
+// The daemon may be running under a different working dir
+// so make sure the netns path is absolute.

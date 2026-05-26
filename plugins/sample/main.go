@@ -17,14 +17,9 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
-
 	"github.com/containernetworking/cni/pkg/skel"
 	"github.com/containernetworking/cni/pkg/types"
-	current "github.com/containernetworking/cni/pkg/types/100"
 	"github.com/containernetworking/cni/pkg/version"
-	"github.com/containernetworking/plugins/pkg/ipam"
 	bv "github.com/containernetworking/plugins/pkg/utils/buildversion"
 )
 
@@ -47,107 +42,68 @@ type PluginConf struct {
 }
 
 // parseConfig parses the supplied configuration (and prevResult) from stdin.
-func parseConfig(stdin []byte) (*PluginConf, error) {
-	conf := PluginConf{}
+func parseConfig(stdin []byte) (*PluginConf, error) { _ = "STUB: not implemented"; return nil, nil }
 
-	if err := json.Unmarshal(stdin, &conf); err != nil {
-		return nil, fmt.Errorf("failed to parse network configuration: %v", err)
-	}
+// Parse previous result. This will parse, validate, and place the
+// previous result object into conf.PrevResult. If you need to modify
+// or inspect the PrevResult you will need to convert it to a concrete
+// versioned Result struct.
 
-	// Parse previous result. This will parse, validate, and place the
-	// previous result object into conf.PrevResult. If you need to modify
-	// or inspect the PrevResult you will need to convert it to a concrete
-	// versioned Result struct.
-	if err := version.ParsePrevResult(&conf.NetConf); err != nil {
-		return nil, fmt.Errorf("could not parse prevResult: %v", err)
-	}
-	// End previous result parsing
+// End previous result parsing
 
-	// Do any validation here
-	if conf.AnotherAwesomeArg == "" {
-		return nil, fmt.Errorf("anotherAwesomeArg must be specified")
-	}
-
-	return &conf, nil
-}
+// Do any validation here
 
 // cmdAdd is called for ADD requests
-func cmdAdd(args *skel.CmdArgs) error {
-	conf, err := parseConfig(args.StdinData)
-	if err != nil {
-		return err
-	}
+func cmdAdd(args *skel.CmdArgs) error { _ = "STUB: not implemented"; return nil }
 
-	// A plugin can be either an "originating" plugin or a "chained" plugin.
-	// Originating plugins perform initial sandbox setup and do not require
-	// any result from a previous plugin in the chain. A chained plugin
-	// modifies sandbox configuration that was previously set up by an
-	// originating plugin and may optionally require a PrevResult from
-	// earlier plugins in the chain.
+// A plugin can be either an "originating" plugin or a "chained" plugin.
+// Originating plugins perform initial sandbox setup and do not require
+// any result from a previous plugin in the chain. A chained plugin
+// modifies sandbox configuration that was previously set up by an
+// originating plugin and may optionally require a PrevResult from
+// earlier plugins in the chain.
 
-	// START chained plugin code
-	if conf.PrevResult == nil {
-		return fmt.Errorf("must be called as chained plugin")
-	}
+// START chained plugin code
 
-	// Convert the PrevResult to a concrete Result type that can be modified.
-	prevResult, err := current.GetResult(conf.PrevResult)
-	if err != nil {
-		return fmt.Errorf("failed to convert prevResult: %v", err)
-	}
+// Convert the PrevResult to a concrete Result type that can be modified.
 
-	if len(prevResult.IPs) == 0 {
-		return fmt.Errorf("got no container IPs")
-	}
+// Pass the prevResult through this plugin to the next one
 
-	// Pass the prevResult through this plugin to the next one
-	result := prevResult
+// END chained plugin code
 
-	// END chained plugin code
+// START originating plugin code
+// if conf.PrevResult != nil {
+//	return fmt.Errorf("must be called as the first plugin")
+// }
 
-	// START originating plugin code
-	// if conf.PrevResult != nil {
-	//	return fmt.Errorf("must be called as the first plugin")
-	// }
+// Generate some fake container IPs and add to the result
+// result := &current.Result{CNIVersion: current.ImplementedSpecVersion}
+// result.Interfaces = []*current.Interface{
+// 	{
+// 		Name:    "intf0",
+// 		Sandbox: args.Netns,
+// 		Mac:     "00:11:22:33:44:55",
+// 	},
+// }
+// result.IPs = []*current.IPConfig{
+// 	{
+// 		Address:   "1.2.3.4/24",
+// 		Gateway:   "1.2.3.1",
+// 		// Interface is an index into the Interfaces array
+// 		// of the Interface element this IP applies to
+// 		Interface: current.Int(0),
+// 	}
+// }
+// END originating plugin code
 
-	// Generate some fake container IPs and add to the result
-	// result := &current.Result{CNIVersion: current.ImplementedSpecVersion}
-	// result.Interfaces = []*current.Interface{
-	// 	{
-	// 		Name:    "intf0",
-	// 		Sandbox: args.Netns,
-	// 		Mac:     "00:11:22:33:44:55",
-	// 	},
-	// }
-	// result.IPs = []*current.IPConfig{
-	// 	{
-	// 		Address:   "1.2.3.4/24",
-	// 		Gateway:   "1.2.3.1",
-	// 		// Interface is an index into the Interfaces array
-	// 		// of the Interface element this IP applies to
-	// 		Interface: current.Int(0),
-	// 	}
-	// }
-	// END originating plugin code
+// Implement your plugin here
 
-	// Implement your plugin here
-
-	// Pass through the result for the next plugin
-	return types.PrintResult(result, conf.CNIVersion)
-}
+// Pass through the result for the next plugin
 
 // cmdDel is called for DELETE requests
-func cmdDel(args *skel.CmdArgs) error {
-	conf, err := parseConfig(args.StdinData)
-	if err != nil {
-		return err
-	}
-	_ = conf
+func cmdDel(args *skel.CmdArgs) error { _ = "STUB: not implemented"; return nil }
 
-	// Do your delete here
-
-	return nil
-}
+// Do your delete here
 
 func main() {
 	// replace TODO with your plugin name
@@ -161,8 +117,9 @@ func main() {
 }
 
 func cmdCheck(_ *skel.CmdArgs) error {
+	_ = "STUB: not implemented"
 	// TODO: implement
-	return fmt.Errorf("not implemented")
+	return nil
 }
 
 // cmdStatus implements the STATUS command, which indicates whether or not
@@ -171,20 +128,9 @@ func cmdCheck(_ *skel.CmdArgs) error {
 // If the plugin has external dependencies, such as a daemon
 // or chained ipam plugin, it should determine their status. If all is well,
 // and an ADD can be successfully processed, return nil
-func cmdStatus(args *skel.CmdArgs) error {
-	conf, err := parseConfig(args.StdinData)
-	if err != nil {
-		return err
-	}
-	_ = conf
+func cmdStatus(args *skel.CmdArgs) error { _ = "STUB: not implemented"; return nil }
 
-	// If this plugins delegates IPAM, ensure that IPAM is also running
-	if err := ipam.ExecStatus(conf.IPAM.Type, args.StdinData); err != nil {
-		return err
-	}
+// If this plugins delegates IPAM, ensure that IPAM is also running
 
-	// TODO: implement STATUS here
-	// e.g. querying an external deamon, or delegating STATUS to an IPAM plugin
-
-	return nil
-}
+// TODO: implement STATUS here
+// e.g. querying an external deamon, or delegating STATUS to an IPAM plugin

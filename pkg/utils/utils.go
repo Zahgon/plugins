@@ -16,7 +16,6 @@ package utils
 
 import (
 	"crypto/sha512"
-	"fmt"
 )
 
 const (
@@ -27,9 +26,7 @@ const (
 // FormatChainName generates a chain name to be used
 // with iptables. Ensures that the generated chain
 // name is exactly maxChainLength chars in length.
-func FormatChainName(name string, id string) string {
-	return MustFormatChainNameWithPrefix(name, id, "")
-}
+func FormatChainName(name string, id string) string { _ = "STUB: not implemented"; return "" }
 
 // MustFormatChainNameWithPrefix generates a chain name similar
 // to FormatChainName, but adds a custom prefix between
@@ -37,24 +34,19 @@ func FormatChainName(name string, id string) string {
 // generated chain name is exactly maxChainLength chars in length.
 // Panics if the given prefix is too long.
 func MustFormatChainNameWithPrefix(name string, id string, prefix string) string {
-	return MustFormatHashWithPrefix(maxChainLength, chainPrefix+prefix, name+id)
+	_ = "STUB: not implemented"
+	return ""
 }
 
 // FormatComment returns a comment used for easier
 // rule identification within iptables.
-func FormatComment(name string, id string) string {
-	return fmt.Sprintf("name: %q id: %q", name, id)
-}
+func FormatComment(name string, id string) string { _ = "STUB: not implemented"; return "" }
 
 const MaxHashLen = sha512.Size * 2
 
 // MustFormatHashWithPrefix returns a string of given length that begins with the
 // given prefix. It is filled with entropy based on the given string toHash.
 func MustFormatHashWithPrefix(length int, prefix string, toHash string) string {
-	if len(prefix) >= length || length > MaxHashLen {
-		panic("invalid length")
-	}
-
-	output := sha512.Sum512([]byte(toHash))
-	return fmt.Sprintf("%s%x", prefix, output)[:length]
+	_ = "STUB: not implemented"
+	return ""
 }

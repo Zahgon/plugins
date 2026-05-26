@@ -22,44 +22,20 @@ import (
 
 // AddRoute adds a universally-scoped route to a device.
 func AddRoute(ipn *net.IPNet, gw net.IP, dev netlink.Link) error {
-	return netlink.RouteAdd(&netlink.Route{
-		LinkIndex: dev.Attrs().Index,
-		Scope:     netlink.SCOPE_UNIVERSE,
-		Dst:       ipn,
-		Gw:        gw,
-	})
+	_ = "STUB: not implemented"
+	return nil
 }
 
 // AddHostRoute adds a host-scoped route to a device.
 func AddHostRoute(ipn *net.IPNet, gw net.IP, dev netlink.Link) error {
-	return netlink.RouteAdd(&netlink.Route{
-		LinkIndex: dev.Attrs().Index,
-		Scope:     netlink.SCOPE_HOST,
-		Dst:       ipn,
-		Gw:        gw,
-	})
+	_ = "STUB: not implemented"
+	return nil
 }
 
 // AddDefaultRoute sets the default route on the given gateway.
-func AddDefaultRoute(gw net.IP, dev netlink.Link) error {
-	var defNet *net.IPNet
-	if gw.To4() != nil {
-		_, defNet, _ = net.ParseCIDR("0.0.0.0/0")
-	} else {
-		_, defNet, _ = net.ParseCIDR("::/0")
-	}
-	return AddRoute(defNet, gw, dev)
-}
+func AddDefaultRoute(gw net.IP, dev netlink.Link) error { _ = "STUB: not implemented"; return nil }
 
 // IsIPNetZero check if the IPNet is "0.0.0.0/0" or "::/0"
 // This is needed as go-netlink replaces nil Dst with a '0' IPNet since
 // https://github.com/vishvananda/netlink/commit/acdc658b8613655ddb69f978e9fb4cf413e2b830
-func IsIPNetZero(ipnet *net.IPNet) bool {
-	if ipnet == nil {
-		return true
-	}
-	if ones, _ := ipnet.Mask.Size(); ones != 0 {
-		return false
-	}
-	return ipnet.IP.Equal(net.IPv4zero) || ipnet.IP.Equal(net.IPv6zero)
-}
+func IsIPNetZero(ipnet *net.IPNet) bool { _ = "STUB: not implemented"; return false }

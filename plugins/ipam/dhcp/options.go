@@ -15,9 +15,7 @@
 package main
 
 import (
-	"fmt"
 	"net"
-	"strconv"
 
 	dhcp4 "github.com/insomniacslk/dhcp/dhcpv4"
 
@@ -34,39 +32,16 @@ var optionNameToID = map[string]dhcp4.OptionCode{
 }
 
 func parseOptionName(option string) (dhcp4.OptionCode, error) {
-	if val, ok := optionNameToID[option]; ok {
-		return val, nil
-	}
-	i, err := strconv.ParseUint(option, 10, 8)
-	if err != nil {
-		return dhcp4.OptionPad, fmt.Errorf("Can not parse option: %w", err)
-	}
-	return dhcp4.GenericOptionCode(i), nil
+	_ = "STUB: not implemented"
+	return *new(dhcp4.OptionCode), nil
 }
 
-func classfulSubnet(sn net.IP) net.IPNet {
-	return net.IPNet{
-		IP:   sn,
-		Mask: sn.DefaultMask(),
-	}
-}
+func classfulSubnet(sn net.IP) net.IPNet { _ = "STUB: not implemented"; return *new(net.IPNet) }
 
 func parseRoutes(opt []byte) []*types.Route {
+	_ = "STUB: not implemented"
 	// StaticRoutes format: pairs of:
 	// Dest = 4 bytes; Classful IP subnet
 	// Router = 4 bytes; IP address of router
-
-	routes := []*types.Route{}
-	for len(opt) >= 8 {
-		sn := opt[0:4]
-		r := opt[4:8]
-		rt := &types.Route{
-			Dst: classfulSubnet(sn),
-			GW:  r,
-		}
-		routes = append(routes, rt)
-		opt = opt[8:]
-	}
-
-	return routes
+	return nil
 }

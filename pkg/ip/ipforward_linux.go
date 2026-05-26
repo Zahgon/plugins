@@ -15,48 +15,15 @@
 package ip
 
 import (
-	"bytes"
-	"os"
-
 	current "github.com/containernetworking/cni/pkg/types/100"
 )
 
-func EnableIP4Forward() error {
-	return echo1("/proc/sys/net/ipv4/ip_forward")
-}
+func EnableIP4Forward() error { _ = "STUB: not implemented"; return nil }
 
-func EnableIP6Forward() error {
-	return echo1("/proc/sys/net/ipv6/conf/all/forwarding")
-}
+func EnableIP6Forward() error { _ = "STUB: not implemented"; return nil }
 
 // EnableForward will enable forwarding for all configured
 // address families
-func EnableForward(ips []*current.IPConfig) error {
-	v4 := false
-	v6 := false
+func EnableForward(ips []*current.IPConfig) error { _ = "STUB: not implemented"; return nil }
 
-	for _, ip := range ips {
-		isV4 := ip.Address.IP.To4() != nil
-		if isV4 && !v4 {
-			if err := EnableIP4Forward(); err != nil {
-				return err
-			}
-			v4 = true
-		} else if !isV4 && !v6 {
-			if err := EnableIP6Forward(); err != nil {
-				return err
-			}
-			v6 = true
-		}
-	}
-	return nil
-}
-
-func echo1(f string) error {
-	if content, err := os.ReadFile(f); err == nil {
-		if bytes.Equal(bytes.TrimSpace(content), []byte("1")) {
-			return nil
-		}
-	}
-	return os.WriteFile(f, []byte("1"), 0o644)
-}
+func echo1(f string) error { _ = "STUB: not implemented"; return nil }

@@ -15,16 +15,10 @@
 package main
 
 import (
-	"fmt"
 	"net"
-	"sort"
-	"strconv"
-	"strings"
 
 	"github.com/coreos/go-iptables/iptables"
 	"github.com/vishvananda/netlink"
-
-	"github.com/containernetworking/plugins/pkg/utils"
 )
 
 // This creates the chains to be added to iptables. The basic structure is
@@ -56,292 +50,87 @@ type portMapperIPTables struct{}
 // forwardPorts establishes port forwarding to a given container IP.
 // containerNet.IP can be either v4 or v6.
 func (*portMapperIPTables) forwardPorts(config *PortMapConf, containerNet net.IPNet) error {
-	isV6 := (containerNet.IP.To4() == nil)
-
-	var ipt *iptables.IPTables
-	var err error
-
-	if isV6 {
-		ipt, err = iptables.NewWithProtocol(iptables.ProtocolIPv6)
-	} else {
-		ipt, err = iptables.NewWithProtocol(iptables.ProtocolIPv4)
-	}
-	if err != nil {
-		return fmt.Errorf("failed to open iptables: %v", err)
-	}
-
-	// Enable masquerading for traffic as necessary.
-	// The DNAT chain sets a mark bit for traffic that needs masq:
-	// - connections from localhost
-	// - hairpin traffic back to the container
-	// Idempotently create the rule that masquerades traffic with this mark.
-	// Need to do this first; the DNAT rules reference these chains
-	if *config.SNAT {
-		if config.ExternalSetMarkChain == nil {
-			setMarkChain := genSetMarkChain(*config.MarkMasqBit)
-			if err := setMarkChain.setup(ipt); err != nil {
-				return fmt.Errorf("unable to create chain %s: %v", setMarkChain.name, err)
-			}
-
-			masqChain := genMarkMasqChain(*config.MarkMasqBit)
-			if err := masqChain.setup(ipt); err != nil {
-				return fmt.Errorf("unable to create chain %s: %v", setMarkChain.name, err)
-			}
-		}
-	}
-
-	// Generate the DNAT (actual port forwarding) rules
-	toplevelDnatChain := genToplevelDnatChain()
-	if err := toplevelDnatChain.setup(ipt); err != nil {
-		return fmt.Errorf("failed to create top-level DNAT chain: %v", err)
-	}
-
-	dnatChain := genDnatChain(config.Name, config.ContainerID)
-	// First, idempotently tear down this chain in case there was some
-	// sort of collision or bad state.
-	fillDnatRules(&dnatChain, config, containerNet)
-	if err := dnatChain.setup(ipt); err != nil {
-		return fmt.Errorf("unable to setup DNAT: %v", err)
-	}
-
+	_ = "STUB: not implemented"
 	return nil
 }
+
+// Enable masquerading for traffic as necessary.
+// The DNAT chain sets a mark bit for traffic that needs masq:
+// - connections from localhost
+// - hairpin traffic back to the container
+// Idempotently create the rule that masquerades traffic with this mark.
+// Need to do this first; the DNAT rules reference these chains
+
+// Generate the DNAT (actual port forwarding) rules
+
+// First, idempotently tear down this chain in case there was some
+// sort of collision or bad state.
 
 func (*portMapperIPTables) checkPorts(config *PortMapConf, containerNet net.IPNet) error {
-	isV6 := (containerNet.IP.To4() == nil)
-	dnatChain := genDnatChain(config.Name, config.ContainerID)
-	fillDnatRules(&dnatChain, config, containerNet)
-
-	// check is called for each address, not once for all addresses
-	var ip4t *iptables.IPTables
-	var err4 error
-	var ip6t *iptables.IPTables
-	var err6 error
-
-	if isV6 {
-		ip6t, err6 = maybeGetIptables(true)
-	} else {
-		ip4t, err4 = maybeGetIptables(false)
-	}
-
-	if ip4t == nil && ip6t == nil {
-		err := fmt.Errorf("neither iptables nor ip6tables is usable")
-		err = fmt.Errorf("%v, (iptables) %v", err, err4)
-		err = fmt.Errorf("%v, (ip6tables) %v", err, err6)
-		return err
-	}
-
-	if ip4t != nil {
-		if err := dnatChain.check(ip4t); err != nil {
-			return fmt.Errorf("could not check ipv4 dnat: %v", err)
-		}
-	}
-
-	if ip6t != nil {
-		if err := dnatChain.check(ip6t); err != nil {
-			return fmt.Errorf("could not check ipv6 dnat: %v", err)
-		}
-	}
-
+	_ = "STUB: not implemented"
 	return nil
 }
+
+// check is called for each address, not once for all addresses
 
 // genToplevelDnatChain creates the top-level summary chain that we'll
 // add our chain to. This is easy, because creating chains is idempotent.
 // IMPORTANT: do not change this, or else upgrading plugins will require
 // manual intervention.
-func genToplevelDnatChain() chain {
-	return chain{
-		table: "nat",
-		name:  TopLevelDNATChainName,
-		entryRules: [][]string{{
-			"-m", "addrtype",
-			"--dst-type", "LOCAL",
-		}},
-		entryChains: []string{"PREROUTING", "OUTPUT"},
-	}
-}
+func genToplevelDnatChain() chain { _ = "STUB: not implemented"; return *new(chain) }
 
 // genDnatChain creates the per-container chain.
 // Conditions are any static entry conditions for the chain.
-func genDnatChain(netName, containerID string) chain {
-	return chain{
-		table:       "nat",
-		name:        utils.MustFormatChainNameWithPrefix(netName, containerID, "DN-"),
-		entryChains: []string{TopLevelDNATChainName},
-	}
-}
+func genDnatChain(netName, containerID string) chain { _ = "STUB: not implemented"; return *new(chain) }
 
 // dnatRules generates the destination NAT rules, one per port, to direct
 // traffic from hostip:hostport to podip:podport
 func fillDnatRules(c *chain, config *PortMapConf, containerNet net.IPNet) {
-	isV6 := (containerNet.IP.To4() == nil)
-	comment := trimComment(fmt.Sprintf(`dnat name: "%s" id: "%s"`, config.Name, config.ContainerID))
-	entries := config.RuntimeConfig.PortMaps
-	setMarkChainName := SetMarkChainName
-	if config.ExternalSetMarkChain != nil {
-		setMarkChainName = *config.ExternalSetMarkChain
-	}
-
-	// Generate the dnat entry rules. We'll use multiport, but it ony accepts
-	// up to 15 rules, so partition the list if needed.
-	// Do it in a stable order for testing
-	protoPorts := groupByProto(entries)
-	protos := []string{}
-	for proto := range protoPorts {
-		protos = append(protos, proto)
-	}
-	sort.Strings(protos)
-	for _, proto := range protos {
-		for _, portSpec := range splitPortList(protoPorts[proto]) {
-			r := []string{
-				"-m", "comment",
-				"--comment", comment,
-				"-m", "multiport",
-				"-p", proto,
-				"--destination-ports", portSpec,
-			}
-
-			if isV6 && config.ConditionsV6 != nil && len(*config.ConditionsV6) > 0 {
-				r = append(r, *config.ConditionsV6...)
-			} else if !isV6 && config.ConditionsV4 != nil && len(*config.ConditionsV4) > 0 {
-				r = append(r, *config.ConditionsV4...)
-			}
-			c.entryRules = append(c.entryRules, r)
-		}
-	}
-
-	// For every entry, generate 3 rules:
-	// - mark hairpin for masq
-	// - mark localhost for masq (for v4)
-	// - do dnat
-	// the ordering is important here; the mark rules must be first.
-	c.rules = make([][]string, 0, 3*len(entries))
-	for _, entry := range entries {
-		// If a HostIP is given, only process the entry if host and container address families match
-		// and append it to the iptables rules
-		addRuleBaseDst := false
-		if entry.HostIP != "" {
-			hostIP := net.ParseIP(entry.HostIP)
-			isHostV6 := (hostIP.To4() == nil)
-
-			if isV6 != isHostV6 {
-				continue
-			}
-
-			// Unspecified addresses can not be used as destination
-			if !hostIP.IsUnspecified() {
-				addRuleBaseDst = true
-			}
-		}
-
-		ruleBase := []string{
-			"-p", entry.Protocol,
-			"--dport", strconv.Itoa(entry.HostPort),
-		}
-		if addRuleBaseDst {
-			ruleBase = append(ruleBase,
-				"-d", entry.HostIP)
-		}
-
-		// Add mark-to-masquerade rules for hairpin and localhost
-		if *config.SNAT {
-			// hairpin
-			hpRule := make([]string, len(ruleBase), len(ruleBase)+4)
-			copy(hpRule, ruleBase)
-
-			masqCIDR := containerNet.String()
-			if config.MasqAll {
-				if isV6 {
-					masqCIDR = "::/0"
-				} else {
-					masqCIDR = "0.0.0.0/0"
-				}
-			}
-
-			hpRule = append(hpRule,
-				"-s", masqCIDR,
-				"-j", setMarkChainName,
-			)
-			c.rules = append(c.rules, hpRule)
-
-			if !isV6 && !config.MasqAll {
-				// localhost
-				localRule := make([]string, len(ruleBase), len(ruleBase)+4)
-				copy(localRule, ruleBase)
-
-				localRule = append(localRule,
-					"-s", "127.0.0.1",
-					"-j", setMarkChainName,
-				)
-				c.rules = append(c.rules, localRule)
-			}
-		}
-
-		// The actual dnat rule
-		dnatRule := make([]string, len(ruleBase), len(ruleBase)+4)
-		copy(dnatRule, ruleBase)
-		dnatRule = append(dnatRule,
-			"-j", "DNAT",
-			"--to-destination", fmtIPPort(containerNet.IP, entry.ContainerPort),
-		)
-		c.rules = append(c.rules, dnatRule)
-	}
+	_ = "STUB: not implemented"
+	return
 }
+
+// Generate the dnat entry rules. We'll use multiport, but it ony accepts
+// up to 15 rules, so partition the list if needed.
+// Do it in a stable order for testing
+
+// For every entry, generate 3 rules:
+// - mark hairpin for masq
+// - mark localhost for masq (for v4)
+// - do dnat
+// the ordering is important here; the mark rules must be first.
+
+// If a HostIP is given, only process the entry if host and container address families match
+// and append it to the iptables rules
+
+// Unspecified addresses can not be used as destination
+
+// Add mark-to-masquerade rules for hairpin and localhost
+
+// hairpin
+
+// localhost
+
+// The actual dnat rule
 
 // genSetMarkChain creates the SETMARK chain - the chain that sets the
 // "to-be-masqueraded" mark and returns.
 // Chains are idempotent, so we'll always create this.
-func genSetMarkChain(markBit int) chain {
-	markValue := 1 << uint(markBit)
-	markDef := fmt.Sprintf("%#x/%#x", markValue, markValue)
-	ch := chain{
-		table: "nat",
-		name:  SetMarkChainName,
-		rules: [][]string{{
-			"-m", "comment",
-			"--comment", "CNI portfwd masquerade mark",
-			"-j", "MARK",
-			"--set-xmark", markDef,
-		}},
-	}
-	return ch
-}
+func genSetMarkChain(markBit int) chain { _ = "STUB: not implemented"; return *new(chain) }
 
 // genMarkMasqChain creates the chain that masquerades all packets marked
 // in the SETMARK chain
-func genMarkMasqChain(markBit int) chain {
-	markValue := 1 << uint(markBit)
-	markDef := fmt.Sprintf("%#x/%#x", markValue, markValue)
-	ch := chain{
-		table:       "nat",
-		name:        MarkMasqChainName,
-		entryChains: []string{"POSTROUTING"},
-		// Only this entry chain needs to be prepended, because otherwise it is
-		// stomped on by the masquerading rules created by the CNI ptp and bridge
-		// plugins.
-		prependEntry: true,
-		entryRules: [][]string{{
-			"-m", "comment",
-			"--comment", "CNI portfwd requiring masquerade",
-		}},
-		rules: [][]string{{
-			"-m", "mark",
-			"--mark", markDef,
-			"-j", "MASQUERADE",
-		}},
-	}
-	return ch
-}
+func genMarkMasqChain(markBit int) chain { _ = "STUB: not implemented"; return *new(chain) }
+
+// Only this entry chain needs to be prepended, because otherwise it is
+// stomped on by the masquerading rules created by the CNI ptp and bridge
+// plugins.
 
 // genOldSnatChain is no longer used, but used to be created. We'll try and
 // tear it down in case the plugin version changed between ADD and DEL
 func genOldSnatChain(netName, containerID string) chain {
-	return chain{
-		table:       "nat",
-		name:        utils.MustFormatChainNameWithPrefix(netName, containerID, "SN-"),
-		entryChains: []string{OldTopLevelSNATChainName},
-	}
+	_ = "STUB: not implemented"
+	return *new(chain)
 }
 
 // unforwardPorts deletes any iptables rules created by this plugin.
@@ -355,69 +144,24 @@ func genOldSnatChain(netName, containerID string) chain {
 // So, we first check that iptables is "generally OK" by doing a check. If
 // not, we ignore the error, unless neither v4 nor v6 are OK.
 func (*portMapperIPTables) unforwardPorts(config *PortMapConf) error {
-	dnatChain := genDnatChain(config.Name, config.ContainerID)
-
-	// Might be lying around from old versions
-	oldSnatChain := genOldSnatChain(config.Name, config.ContainerID)
-
-	ip4t, err4 := maybeGetIptables(false)
-	ip6t, err6 := maybeGetIptables(true)
-	if ip4t == nil && ip6t == nil {
-		err := fmt.Errorf("neither iptables nor ip6tables is usable")
-		err = fmt.Errorf("%v, (iptables) %v", err, err4)
-		err = fmt.Errorf("%v, (ip6tables) %v", err, err6)
-		return err
-	}
-
-	if ip4t != nil {
-		if err := dnatChain.teardown(ip4t); err != nil {
-			return fmt.Errorf("could not teardown ipv4 dnat: %v", err)
-		}
-		oldSnatChain.teardown(ip4t)
-	}
-
-	if ip6t != nil {
-		if err := dnatChain.teardown(ip6t); err != nil {
-			return fmt.Errorf("could not teardown ipv6 dnat: %v", err)
-		}
-		oldSnatChain.teardown(ip6t)
-	}
+	_ = "STUB: not implemented"
 	return nil
 }
+
+// Might be lying around from old versions
 
 // maybeGetIptables implements the soft error swallowing. If iptables is
 // usable for the given protocol, returns a handle, otherwise nil
 func maybeGetIptables(isV6 bool) (*iptables.IPTables, error) {
-	proto := iptables.ProtocolIPv4
-	if isV6 {
-		proto = iptables.ProtocolIPv6
-	}
-
-	ipt, err := iptables.NewWithProtocol(proto)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = ipt.List("nat", "OUTPUT")
-	if err != nil {
-		return nil, err
-	}
-
-	return ipt, nil
+	_ = "STUB: not implemented"
+	return nil, nil
 }
 
 // deletePortmapStaleConnections delete the UDP conntrack entries on the specified IP family
 // from the ports mapped to the container
 func deletePortmapStaleConnections(portMappings []PortMapEntry, family netlink.InetFamily) error {
-	for _, pm := range portMappings {
-		// skip if is not UDP
-		if strings.ToLower(pm.Protocol) != "udp" {
-			continue
-		}
-		err := utils.DeleteConntrackEntriesForDstPort(uint16(pm.HostPort), utils.PROTOCOL_UDP, family)
-		if err != nil {
-			return err
-		}
-	}
+	_ = "STUB: not implemented"
 	return nil
 }
+
+// skip if is not UDP

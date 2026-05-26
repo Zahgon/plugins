@@ -15,9 +15,6 @@
 package main
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/godbus/dbus/v5"
 
 	current "github.com/containernetworking/cni/pkg/types/100"
@@ -48,76 +45,33 @@ type fwdBackend struct {
 // fwdBackend implements the FirewallBackend interface
 var _ FirewallBackend = &fwdBackend{}
 
-func getConn() (*dbus.Conn, error) {
-	if testConn != nil {
-		return testConn, nil
-	}
-	return dbus.SystemBus()
-}
+func getConn() (*dbus.Conn, error) { _ = "STUB: not implemented"; return nil, nil }
 
 // isFirewalldRunning checks whether firewalld is running.
-func isFirewalldRunning() bool {
-	conn, err := getConn()
-	if err != nil {
-		return false
-	}
-
-	dbusObj := conn.Object(dbusName, dbusPath)
-	var res string
-	if err := dbusObj.Call(dbusName+"."+dbusGetNameOwnerMethod, 0, firewalldName).Store(&res); err != nil {
-		return false
-	}
-
-	return true
-}
+func isFirewalldRunning() bool { _ = "STUB: not implemented"; return false }
 
 func newFirewalldBackend() (FirewallBackend, error) {
-	conn, err := getConn()
-	if err != nil {
-		return nil, err
-	}
-
-	backend := &fwdBackend{
-		conn: conn,
-	}
-	return backend, nil
+	_ = "STUB: not implemented"
+	return *new(FirewallBackend), nil
 }
 
 func (fb *fwdBackend) Add(conf *FirewallNetConf, result *current.Result) error {
-	for _, ip := range result.IPs {
-		ipStr := ipString(ip.Address)
-		// Add a firewalld rule which assigns the given source IP to the given zone
-		firewalldObj := fb.conn.Object(firewalldName, firewalldPath)
-		var res string
-		if err := firewalldObj.Call(firewalldZoneInterface+"."+firewalldAddSourceMethod, 0, conf.FirewalldZone, ipStr).Store(&res); err != nil {
-			if !strings.Contains(err.Error(), errZoneAlreadySet) {
-				return fmt.Errorf("failed to add the address %v to %v zone: %v", ipStr, conf.FirewalldZone, err)
-			}
-		}
-	}
+	_ = "STUB: not implemented"
 	return nil
 }
+
+// Add a firewalld rule which assigns the given source IP to the given zone
 
 func (fb *fwdBackend) Del(conf *FirewallNetConf, result *current.Result) error {
-	for _, ip := range result.IPs {
-		ipStr := ipString(ip.Address)
-		// Remove firewalld rules which assigned the given source IP to the given zone
-		firewalldObj := fb.conn.Object(firewalldName, firewalldPath)
-		var res string
-		firewalldObj.Call(firewalldZoneInterface+"."+firewalldRemoveSourceMethod, 0, conf.FirewalldZone, ipStr).Store(&res)
-	}
+	_ = "STUB: not implemented"
 	return nil
 }
 
+// Remove firewalld rules which assigned the given source IP to the given zone
+
 func (fb *fwdBackend) Check(conf *FirewallNetConf, result *current.Result) error {
-	for _, ip := range result.IPs {
-		ipStr := ipString(ip.Address)
-		// Check for a firewalld rule for the given source IP to the given zone
-		firewalldObj := fb.conn.Object(firewalldName, firewalldPath)
-		var res bool
-		if err := firewalldObj.Call(firewalldZoneInterface+"."+firewalldQuerySourceMethod, 0, conf.FirewalldZone, ipStr).Store(&res); err != nil {
-			return fmt.Errorf("failed to find the address %v in %v zone", ipStr, conf.FirewalldZone)
-		}
-	}
+	_ = "STUB: not implemented"
 	return nil
 }
+
+// Check for a firewalld rule for the given source IP to the given zone

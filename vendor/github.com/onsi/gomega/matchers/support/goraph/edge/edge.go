@@ -1,8 +1,9 @@
 package edge
 
 import (
-	. "github.com/onsi/gomega/matchers/support/goraph/node"
 	"slices"
+
+	. "github.com/onsi/gomega/matchers/support/goraph/node"
 )
 
 type Edge struct {

@@ -2,9 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
-	"io"
-	"net"
 )
 
 func main() {
@@ -28,63 +25,7 @@ func main() {
 	}
 }
 
-func connectTCP(target, payload string) {
-	conn, err := net.Dial("tcp", target)
-	if err != nil {
-		panic(fmt.Sprintf("Failed to open connection to [%s] %v", target, err))
-	}
-	defer conn.Close()
-
-	_, err = conn.Write([]byte(payload))
-	if err != nil {
-		panic("Failed to send payload")
-	}
-	_, err = conn.Write([]byte("\n"))
-	if err != nil {
-		panic("Failed to send payload")
-	}
-	buf := make([]byte, 1024)
-	for {
-		n, err := conn.Read(buf)
-		fmt.Print(string(buf[:n]))
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			panic("Failed to read from socket")
-		}
-	}
-}
+func connectTCP(target, payload string) { _ = "STUB: not implemented"; return }
 
 // UDP uses a constant source port to trigger conntrack problems
-func connectUDP(target, payload string) {
-	LocalAddr, err := net.ResolveUDPAddr("udp", ":54321")
-	if err != nil {
-		panic(fmt.Sprintf("Failed to resolve UDP local address on port 54321 %v", err))
-	}
-	RemoteAddr, err := net.ResolveUDPAddr("udp", target)
-	if err != nil {
-		panic(fmt.Sprintf("Failed to resolve UDP remote address [%s] %v", target, err))
-	}
-	conn, err := net.DialUDP("udp", LocalAddr, RemoteAddr)
-	if err != nil {
-		panic(fmt.Sprintf("Failed to open connection to [%s] %v", target, err))
-	}
-	defer conn.Close()
-
-	_, err = conn.Write([]byte(payload))
-	if err != nil {
-		panic("Failed to send payload")
-	}
-	_, err = conn.Write([]byte("\n"))
-	if err != nil {
-		panic("Failed to send payload")
-	}
-
-	buf := make([]byte, 1024)
-	n, err := conn.Read(buf)
-	if err != nil {
-		panic("Failed to read from socket")
-	}
-	fmt.Print(string(buf[:n]))
-}
+func connectUDP(target, payload string) { _ = "STUB: not implemented"; return }

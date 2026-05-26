@@ -15,13 +15,9 @@
 package ip
 
 import (
-	"errors"
-	"fmt"
 	"net"
-	"strings"
 
 	"github.com/containernetworking/cni/pkg/types"
-	"github.com/containernetworking/plugins/pkg/utils"
 )
 
 // SetupIPMasqForNetworks installs rules to masquerade traffic coming from ips of ipns and
@@ -29,64 +25,23 @@ import (
 // backend can be either "iptables" or "nftables"; if it is nil, then a suitable default
 // implementation will be used.
 func SetupIPMasqForNetworks(backend *string, ipns []*net.IPNet, network, ifname, containerID string) error {
-	if backend == nil {
-		// Prefer iptables, unless only nftables is available
-		defaultBackend := "iptables"
-		if !utils.SupportsIPTables() && utils.SupportsNFTables() {
-			defaultBackend = "nftables"
-		}
-		backend = &defaultBackend
-	}
+	_ = "STUB: not implemented"
+	return nil
 
-	switch *backend {
-	case "iptables":
-		return setupIPMasqIPTables(ipns, network, ifname, containerID)
-	case "nftables":
-		return setupIPMasqNFTables(ipns, network, ifname, containerID)
-	default:
-		return fmt.Errorf("unknown ipmasq backend %q", *backend)
-	}
+	// Prefer iptables, unless only nftables is available
 }
 
 // TeardownIPMasqForNetworks undoes the effects of SetupIPMasqForNetworks
 func TeardownIPMasqForNetworks(ipns []*net.IPNet, network, ifname, containerID string) error {
-	var errs []string
+	_ = "STUB: not implemented"
 
 	// Do both the iptables and the nftables cleanup, since the pod may have been
 	// created with a different version of this plugin or a different configuration.
-
-	err := teardownIPMasqIPTables(ipns, network, ifname, containerID)
-	if err != nil && utils.SupportsIPTables() {
-		errs = append(errs, err.Error())
-	}
-
-	err = teardownIPMasqNFTables(ipns, network, ifname, containerID)
-	if err != nil && utils.SupportsNFTables() {
-		errs = append(errs, err.Error())
-	}
-
-	if errs == nil {
-		return nil
-	}
-	return errors.New(strings.Join(errs, "\n"))
+	return nil
 }
 
 // GCIPMasqForNetwork garbage collects stale IPMasq entries for network
 func GCIPMasqForNetwork(network string, attachments []types.GCAttachment) error {
-	var errs []string
-
-	err := gcIPMasqIPTables(network, attachments)
-	if err != nil && utils.SupportsIPTables() {
-		errs = append(errs, err.Error())
-	}
-
-	err = gcIPMasqNFTables(network, attachments)
-	if err != nil && utils.SupportsNFTables() {
-		errs = append(errs, err.Error())
-	}
-
-	if errs == nil {
-		return nil
-	}
-	return errors.New(strings.Join(errs, "\n"))
+	_ = "STUB: not implemented"
+	return nil
 }

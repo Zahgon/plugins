@@ -18,188 +18,76 @@
 package main
 
 import (
-	"fmt"
 	"net"
 
 	"github.com/coreos/go-iptables/iptables"
 
 	current "github.com/containernetworking/cni/pkg/types/100"
-	"github.com/containernetworking/plugins/pkg/utils"
 )
 
-func getPrivChainRules(ip string) [][]string {
-	var rules [][]string
-	rules = append(rules, []string{"-d", ip, "-m", "conntrack", "--ctstate", "RELATED,ESTABLISHED", "-j", "ACCEPT"})
-	rules = append(rules, []string{"-s", ip, "-j", "ACCEPT"})
-	return rules
-}
+func getPrivChainRules(ip string) [][]string { _ = "STUB: not implemented"; return nil }
 
-func generateFilterRule(privChainName string) []string {
-	return []string{"-m", "comment", "--comment", "CNI firewall plugin rules", "-j", privChainName}
-}
+func generateFilterRule(privChainName string) []string { _ = "STUB: not implemented"; return nil }
 
-func generateAdminRule(adminChainName string) []string {
-	return []string{"-m", "comment", "--comment", "CNI firewall plugin admin overrides", "-j", adminChainName}
-}
+func generateAdminRule(adminChainName string) []string { _ = "STUB: not implemented"; return nil }
 
 func cleanupRules(ipt *iptables.IPTables, privChainName string, rules [][]string) {
-	for _, rule := range rules {
-		ipt.Delete("filter", privChainName, rule...)
-	}
+	_ = "STUB: not implemented"
+	return
 }
 
 func ensureFirstChainRule(ipt *iptables.IPTables, chain string, rule []string) error {
-	exists, err := ipt.Exists("filter", chain, rule...)
-	if !exists && err == nil {
-		err = ipt.Insert("filter", chain, 1, rule...)
-	}
-	return err
+	_ = "STUB: not implemented"
+	return nil
 }
 
 func (ib *iptablesBackend) setupChains(ipt *iptables.IPTables) error {
-	privRule := generateFilterRule(ib.privChainName)
-	adminRule := generateAdminRule(ib.adminChainName)
-
-	// Ensure our private chains exist
-	if err := utils.EnsureChain(ipt, "filter", ib.privChainName); err != nil {
-		return err
-	}
-	if err := utils.EnsureChain(ipt, "filter", ib.adminChainName); err != nil {
-		return err
-	}
-
-	// Ensure our filter rule exists in the forward chain
-	if err := ensureFirstChainRule(ipt, "FORWARD", privRule); err != nil {
-		return err
-	}
-
-	// Ensure our admin override chain rule exists in our private chain
-	return ensureFirstChainRule(ipt, ib.privChainName, adminRule)
+	_ = "STUB: not implemented"
+	return nil
 }
 
+// Ensure our private chains exist
+
+// Ensure our filter rule exists in the forward chain
+
+// Ensure our admin override chain rule exists in our private chain
+
 func protoForIP(ip net.IPNet) iptables.Protocol {
-	if ip.IP.To4() != nil {
-		return iptables.ProtocolIPv4
-	}
-	return iptables.ProtocolIPv6
+	_ = "STUB: not implemented"
+	return *new(iptables.Protocol)
 }
 
 func (ib *iptablesBackend) addRules(_ *FirewallNetConf, result *current.Result, ipt *iptables.IPTables, proto iptables.Protocol) error {
-	rules := make([][]string, 0)
-	for _, ip := range result.IPs {
-		if protoForIP(ip.Address) == proto {
-			rules = append(rules, getPrivChainRules(ipString(ip.Address))...)
-		}
-	}
-
-	if len(rules) > 0 {
-		if err := ib.setupChains(ipt); err != nil {
-			return err
-		}
-
-		// Clean up on any errors
-		var err error
-		defer func() {
-			if err != nil {
-				cleanupRules(ipt, ib.privChainName, rules)
-			}
-		}()
-
-		for _, rule := range rules {
-			err = ipt.AppendUnique("filter", ib.privChainName, rule...)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
+	_ = "STUB: not implemented"
 	return nil
 }
 
+// Clean up on any errors
+
 func (ib *iptablesBackend) delRules(_ *FirewallNetConf, result *current.Result, ipt *iptables.IPTables, proto iptables.Protocol) {
-	rules := make([][]string, 0)
-	for _, ip := range result.IPs {
-		if protoForIP(ip.Address) == proto {
-			rules = append(rules, getPrivChainRules(ipString(ip.Address))...)
-		}
-	}
-	if len(rules) > 0 {
-		cleanupRules(ipt, ib.privChainName, rules)
-	}
+	_ = "STUB: not implemented"
+	return
 }
 
 func (ib *iptablesBackend) checkRules(_ *FirewallNetConf, result *current.Result, ipt *iptables.IPTables, proto iptables.Protocol) error {
-	rules := make([][]string, 0)
-	for _, ip := range result.IPs {
-		if protoForIP(ip.Address) == proto {
-			rules = append(rules, getPrivChainRules(ipString(ip.Address))...)
-		}
-	}
-
-	if len(rules) == 0 {
-		return nil
-	}
-
-	// Ensure our private chains exist
-	if err := utils.EnsureChain(ipt, "filter", ib.privChainName); err != nil {
-		return err
-	}
-	if err := utils.EnsureChain(ipt, "filter", ib.adminChainName); err != nil {
-		return err
-	}
-
-	// Ensure our filter rule exists in the forward chain
-	privRule := generateFilterRule(ib.privChainName)
-	privExists, err := ipt.Exists("filter", "FORWARD", privRule...)
-	if err != nil {
-		return err
-	}
-	if !privExists {
-		return fmt.Errorf("expected %v rule %v not found", "FORWARD", privRule)
-	}
-
-	// Ensure our admin override chain rule exists in our private chain
-	adminRule := generateAdminRule(ib.adminChainName)
-	adminExists, err := ipt.Exists("filter", ib.privChainName, adminRule...)
-	if err != nil {
-		return err
-	}
-	if !adminExists {
-		return fmt.Errorf("expected %v rule %v not found", ib.privChainName, adminRule)
-	}
-
-	// ensure rules for this IP address exist
-	for _, rule := range rules {
-		// Ensure our rule exists in our private chain
-		exists, err := ipt.Exists("filter", ib.privChainName, rule...)
-		if err != nil {
-			return err
-		}
-		if !exists {
-			return fmt.Errorf("expected rule %v not found", rule)
-		}
-	}
-
+	_ = "STUB: not implemented"
 	return nil
 }
 
-func findProtos(conf *FirewallNetConf) []iptables.Protocol {
-	protos := []iptables.Protocol{iptables.ProtocolIPv4, iptables.ProtocolIPv6}
-	if conf.PrevResult != nil {
-		// If PrevResult is given, scan all IP addresses to figure out
-		// which IP versions to use
-		protos = []iptables.Protocol{}
-		result, _ := current.NewResultFromResult(conf.PrevResult)
-		for _, addr := range result.IPs {
-			if addr.Address.IP.To4() != nil {
-				protos = append(protos, iptables.ProtocolIPv4)
-			} else {
-				protos = append(protos, iptables.ProtocolIPv6)
-			}
-		}
-	}
-	return protos
-}
+// Ensure our private chains exist
+
+// Ensure our filter rule exists in the forward chain
+
+// Ensure our admin override chain rule exists in our private chain
+
+// ensure rules for this IP address exist
+
+// Ensure our rule exists in our private chain
+
+func findProtos(conf *FirewallNetConf) []iptables.Protocol { _ = "STUB: not implemented"; return nil }
+
+// If PrevResult is given, scan all IP addresses to figure out
+// which IP versions to use
 
 type iptablesBackend struct {
 	protos         map[iptables.Protocol]*iptables.IPTables
@@ -211,49 +99,21 @@ type iptablesBackend struct {
 var _ FirewallBackend = &iptablesBackend{}
 
 func newIptablesBackend(conf *FirewallNetConf) (FirewallBackend, error) {
-	adminChainName := conf.IptablesAdminChainName
-	if adminChainName == "" {
-		adminChainName = "CNI-ADMIN"
-	}
-
-	backend := &iptablesBackend{
-		privChainName:  "CNI-FORWARD",
-		adminChainName: adminChainName,
-		protos:         make(map[iptables.Protocol]*iptables.IPTables),
-	}
-
-	for _, proto := range []iptables.Protocol{iptables.ProtocolIPv4, iptables.ProtocolIPv6} {
-		ipt, err := iptables.NewWithProtocol(proto)
-		if err != nil {
-			return nil, fmt.Errorf("could not initialize iptables protocol %v: %v", proto, err)
-		}
-		backend.protos[proto] = ipt
-	}
-
-	return backend, nil
+	_ = "STUB: not implemented"
+	return *new(FirewallBackend), nil
 }
 
 func (ib *iptablesBackend) Add(conf *FirewallNetConf, result *current.Result) error {
-	for proto, ipt := range ib.protos {
-		if err := ib.addRules(conf, result, ipt, proto); err != nil {
-			return err
-		}
-	}
+	_ = "STUB: not implemented"
 	return nil
 }
 
 func (ib *iptablesBackend) Del(conf *FirewallNetConf, result *current.Result) error {
-	for proto, ipt := range ib.protos {
-		ib.delRules(conf, result, ipt, proto)
-	}
+	_ = "STUB: not implemented"
 	return nil
 }
 
 func (ib *iptablesBackend) Check(conf *FirewallNetConf, result *current.Result) error {
-	for proto, ipt := range ib.protos {
-		if err := ib.checkRules(conf, result, ipt, proto); err != nil {
-			return err
-		}
-	}
+	_ = "STUB: not implemented"
 	return nil
 }

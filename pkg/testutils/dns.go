@@ -15,10 +15,6 @@
 package testutils
 
 import (
-	"fmt"
-	"os"
-	"strings"
-
 	"github.com/containernetworking/cni/pkg/types"
 )
 
@@ -26,34 +22,6 @@ import (
 // it in the resolv.conf format. It returns the path of the created temporary file or
 // an error if any occurs while creating/writing the file. It is the caller's
 // responsibility to remove the file.
-func TmpResolvConf(dnsConf types.DNS) (string, error) {
-	f, err := os.CreateTemp("", "cni_test_resolv.conf")
-	if err != nil {
-		return "", fmt.Errorf("failed to get temp file for CNI test resolv.conf: %v", err)
-	}
-	defer f.Close()
+func TmpResolvConf(dnsConf types.DNS) (string, error) { _ = "STUB: not implemented"; return "", nil }
 
-	path := f.Name()
-	defer func() {
-		if err != nil {
-			os.RemoveAll(path)
-		}
-	}()
-
-	// see "man 5 resolv.conf" for the format of resolv.conf
-	var resolvConfLines []string
-	for _, nameserver := range dnsConf.Nameservers {
-		resolvConfLines = append(resolvConfLines, fmt.Sprintf("nameserver %s", nameserver))
-	}
-	resolvConfLines = append(resolvConfLines, fmt.Sprintf("domain %s", dnsConf.Domain))
-	resolvConfLines = append(resolvConfLines, fmt.Sprintf("search %s", strings.Join(dnsConf.Search, " ")))
-	resolvConfLines = append(resolvConfLines, fmt.Sprintf("options %s", strings.Join(dnsConf.Options, " ")))
-
-	resolvConf := strings.Join(resolvConfLines, "\n")
-	_, err = f.Write([]byte(resolvConf))
-	if err != nil {
-		return "", fmt.Errorf("failed to write temp resolv.conf for CNI test: %v", err)
-	}
-
-	return path, err
-}
+// see "man 5 resolv.conf" for the format of resolv.conf

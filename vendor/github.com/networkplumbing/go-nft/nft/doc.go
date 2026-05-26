@@ -28,18 +28,20 @@
 // which populates the configuration with tables, chains and rules, accompanied
 // to specific actions (add, delete, flush).
 //
-//   config := nft.NewConfig()
-//   table := nft.NewTable("mytable", nft.FamilyIP)
-//   config.AddTable(table)
-//   chain := nft.NewRegularChain(table, "mychain")
-//   config.AddChain(chain)
-//   rule := nft.NewRule(table, chain, statements, nil, nil, "mycomment")
+//	config := nft.NewConfig()
+//	table := nft.NewTable("mytable", nft.FamilyIP)
+//	config.AddTable(table)
+//	chain := nft.NewRegularChain(table, "mychain")
+//	config.AddChain(chain)
+//	rule := nft.NewRule(table, chain, statements, nil, nil, "mycomment")
 //
 // To apply a configuration on the system, use the `ApplyConfig` function.
-//   err := nft.ApplyConfig(config)
+//
+//	err := nft.ApplyConfig(config)
 //
 // To read the configuration from the system, use the `ReadConfig` function.
-//   config, err := nft.ReadConfig()
+//
+//	config, err := nft.ReadConfig()
 //
 // For full setup example, see the integration test: tests/config_test.go
 //

@@ -15,15 +15,11 @@
 package ip
 
 import (
-	"context"
-	"fmt"
 	"net"
-	"strings"
 
 	"sigs.k8s.io/knftables"
 
 	"github.com/containernetworking/cni/pkg/types"
-	"github.com/containernetworking/plugins/pkg/utils"
 )
 
 const (
@@ -47,185 +43,73 @@ const (
 // but only if it was added for container A, not if it was added for container B".
 
 // hashForNetwork returns a unique hash for this network
-func hashForNetwork(network string) string {
-	return utils.MustFormatHashWithPrefix(16, "", network)
-}
+func hashForNetwork(network string) string { _ = "STUB: not implemented"; return "" }
 
 // hashForInstance returns a unique hash identifying the rules for this
 // network/ifname/containerID
 func hashForInstance(network, ifname, containerID string) string {
-	return hashForNetwork(network) + "-" + utils.MustFormatHashWithPrefix(16, "", ifname+":"+containerID)
+	_ = "STUB: not implemented"
+	return ""
 }
 
 // commentForInstance returns a comment string that begins with a unique hash and
 // ends with a (possibly-truncated) human-readable description.
 func commentForInstance(network, ifname, containerID string) string {
-	comment := fmt.Sprintf("%s, net: %s, if: %s, id: %s",
-		hashForInstance(network, ifname, containerID),
-		strings.ReplaceAll(network, `"`, ``),
-		strings.ReplaceAll(ifname, `"`, ``),
-		strings.ReplaceAll(containerID, `"`, ``),
-	)
-	if len(comment) > knftables.CommentLengthMax {
-		comment = comment[:knftables.CommentLengthMax]
-	}
-	return comment
+	_ = "STUB: not implemented"
+	return ""
 }
 
 // setupIPMasqNFTables is the nftables-based implementation of SetupIPMasqForNetworks
 func setupIPMasqNFTables(ipns []*net.IPNet, network, ifname, containerID string) error {
-	nft, err := knftables.New(knftables.InetFamily, ipMasqTableName)
-	if err != nil {
-		return err
-	}
-	return setupIPMasqNFTablesWithInterface(nft, ipns, network, ifname, containerID)
+	_ = "STUB: not implemented"
+	return nil
 }
 
 func setupIPMasqNFTablesWithInterface(nft knftables.Interface, ipns []*net.IPNet, network, ifname, containerID string) error {
-	staleRules, err := findRules(nft, hashForInstance(network, ifname, containerID))
-	if err != nil {
-		return err
-	}
-
-	tx := nft.NewTransaction()
-
-	// Ensure that our table and chains exist.
-	tx.Add(&knftables.Table{
-		Comment: knftables.PtrTo("Masquerading for plugins from github.com/containernetworking/plugins"),
-	})
-	tx.Add(&knftables.Chain{
-		Name:    ipMasqChainName,
-		Comment: knftables.PtrTo("Masquerade traffic from certain IPs to any (non-multicast) IP outside their subnet"),
-	})
-
-	// Ensure that the postrouting chain exists and has the correct rules. (Has to be
-	// done after creating ipMasqChainName, so we can jump to it.)
-	tx.Add(&knftables.Chain{
-		Name:     "postrouting",
-		Type:     knftables.PtrTo(knftables.NATType),
-		Hook:     knftables.PtrTo(knftables.PostroutingHook),
-		Priority: knftables.PtrTo(knftables.SNATPriority),
-	})
-	tx.Flush(&knftables.Chain{
-		Name: "postrouting",
-	})
-	tx.Add(&knftables.Rule{
-		Chain: "postrouting",
-		Rule:  "ip daddr == 224.0.0.0/4  return",
-	})
-	tx.Add(&knftables.Rule{
-		Chain: "postrouting",
-		Rule:  "ip6 daddr == ff00::/8  return",
-	})
-	tx.Add(&knftables.Rule{
-		Chain: "postrouting",
-		Rule: knftables.Concat(
-			"goto", ipMasqChainName,
-		),
-	})
-
-	// Delete stale rules, add new rules to masquerade chain
-	for _, rule := range staleRules {
-		tx.Delete(rule)
-	}
-	for _, ipn := range ipns {
-		ip := "ip"
-		if ipn.IP.To4() == nil {
-			ip = "ip6"
-		}
-
-		// e.g. if ipn is "192.168.1.4/24", then dstNet is "192.168.1.0/24"
-		dstNet := &net.IPNet{IP: ipn.IP.Mask(ipn.Mask), Mask: ipn.Mask}
-
-		tx.Add(&knftables.Rule{
-			Chain: ipMasqChainName,
-			Rule: knftables.Concat(
-				ip, "saddr", "==", ipn.IP,
-				ip, "daddr", "!=", dstNet,
-				"masquerade",
-			),
-			Comment: knftables.PtrTo(commentForInstance(network, ifname, containerID)),
-		})
-	}
-
-	return nft.Run(context.TODO(), tx)
+	_ = "STUB: not implemented"
+	return nil
 }
+
+// Ensure that our table and chains exist.
+
+// Ensure that the postrouting chain exists and has the correct rules. (Has to be
+// done after creating ipMasqChainName, so we can jump to it.)
+
+// Delete stale rules, add new rules to masquerade chain
+
+// e.g. if ipn is "192.168.1.4/24", then dstNet is "192.168.1.0/24"
 
 // teardownIPMasqNFTables is the nftables-based implementation of TeardownIPMasqForNetworks
 func teardownIPMasqNFTables(ipns []*net.IPNet, network, ifname, containerID string) error {
-	nft, err := knftables.New(knftables.InetFamily, ipMasqTableName)
-	if err != nil {
-		return err
-	}
-	return teardownIPMasqNFTablesWithInterface(nft, ipns, network, ifname, containerID)
+	_ = "STUB: not implemented"
+	return nil
 }
 
 func teardownIPMasqNFTablesWithInterface(nft knftables.Interface, _ []*net.IPNet, network, ifname, containerID string) error {
-	rules, err := findRules(nft, hashForInstance(network, ifname, containerID))
-	if err != nil {
-		return err
-	} else if len(rules) == 0 {
-		return nil
-	}
-
-	tx := nft.NewTransaction()
-	for _, rule := range rules {
-		tx.Delete(rule)
-	}
-	return nft.Run(context.TODO(), tx)
+	_ = "STUB: not implemented"
+	return nil
 }
 
 // gcIPMasqNFTables is the nftables-based implementation of GCIPMasqForNetwork
 func gcIPMasqNFTables(network string, attachments []types.GCAttachment) error {
-	nft, err := knftables.New(knftables.InetFamily, ipMasqTableName)
-	if err != nil {
-		return err
-	}
-	return gcIPMasqNFTablesWithInterface(nft, network, attachments)
+	_ = "STUB: not implemented"
+	return nil
 }
 
 func gcIPMasqNFTablesWithInterface(nft knftables.Interface, network string, attachments []types.GCAttachment) error {
+	_ = "STUB: not implemented"
 	// Find all rules for the network
-	rules, err := findRules(nft, hashForNetwork(network))
-	if err != nil {
-		return err
-	} else if len(rules) == 0 {
-		return nil
-	}
-
-	// Compute the comments for all elements of attachments
-	validAttachments := map[string]bool{}
-	for _, attachment := range attachments {
-		validAttachments[commentForInstance(network, attachment.IfName, attachment.ContainerID)] = true
-	}
-
-	// Delete anything in rules that isn't in validAttachments
-	tx := nft.NewTransaction()
-	for _, rule := range rules {
-		if !validAttachments[*rule.Comment] {
-			tx.Delete(rule)
-		}
-	}
-	return nft.Run(context.TODO(), tx)
+	return nil
 }
+
+// Compute the comments for all elements of attachments
+
+// Delete anything in rules that isn't in validAttachments
 
 // findRules finds rules with comments that start with commentPrefix.
 func findRules(nft knftables.Interface, commentPrefix string) ([]*knftables.Rule, error) {
-	rules, err := nft.ListRules(context.TODO(), ipMasqChainName)
-	if err != nil {
-		if knftables.IsNotFound(err) {
-			// If ipMasqChainName doesn't exist yet, that's fine
-			return nil, nil
-		}
-		return nil, err
-	}
-
-	matchingRules := make([]*knftables.Rule, 0, 1)
-	for _, rule := range rules {
-		if rule.Comment != nil && strings.HasPrefix(*rule.Comment, commentPrefix) {
-			matchingRules = append(matchingRules, rule)
-		}
-	}
-
-	return matchingRules, nil
+	_ = "STUB: not implemented"
+	return nil, nil
 }
+
+// If ipMasqChainName doesn't exist yet, that's fine

@@ -8,13 +8,9 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
-	"io"
 	"log"
 	"net"
-	"os"
-	"strings"
 	"time"
 )
 
@@ -69,22 +65,4 @@ func main() {
 	}
 }
 
-func handleConnection(conn net.Conn) {
-	conn.SetReadDeadline(time.Now().Add(1 * time.Minute))
-	content, err := bufio.NewReader(conn).ReadString('\n')
-	if err != nil && err != io.EOF {
-		fmt.Fprint(os.Stderr, err.Error())
-		return
-	}
-
-	conn.SetWriteDeadline(time.Now().Add(1 * time.Minute))
-	if _, err = conn.Write([]byte(strings.TrimSuffix(content, "\n"))); err != nil {
-		fmt.Fprint(os.Stderr, err.Error())
-		return
-	}
-
-	if err = conn.Close(); err != nil {
-		fmt.Fprint(os.Stderr, err.Error())
-		return
-	}
-}
+func handleConnection(conn net.Conn) { _ = "STUB: not implemented"; return }

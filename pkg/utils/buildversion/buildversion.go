@@ -16,11 +16,7 @@
 // set the build-version
 package buildversion
 
-import "fmt"
-
 // This is overridden in the linker script
 var BuildVersion = "version unknown"
 
-func BuildString(pluginName string) string {
-	return fmt.Sprintf("CNI %s plugin %s", pluginName, BuildVersion)
-}
+func BuildString(pluginName string) string { _ = "STUB: not implemented"; return "" }

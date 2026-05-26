@@ -15,9 +15,6 @@
 package disk
 
 import (
-	"os"
-	"path"
-
 	"github.com/alexflint/go-filemutex"
 )
 
@@ -27,34 +24,20 @@ type FileLock struct {
 }
 
 // NewFileLock opens file/dir at path and returns unlocked FileLock object
-func NewFileLock(lockPath string) (*FileLock, error) {
-	fi, err := os.Stat(lockPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if fi.IsDir() {
-		lockPath = path.Join(lockPath, "lock")
-	}
-
-	f, err := filemutex.New(lockPath)
-	if err != nil {
-		return nil, err
-	}
-
-	return &FileLock{f}, nil
-}
+func NewFileLock(lockPath string) (*FileLock, error) { _ = "STUB: not implemented"; return nil, nil }
 
 func (l *FileLock) Close() error {
-	return l.f.Close()
+	_ = "STUB: not implemented"
+
+	// Lock acquires an exclusive lock
+	return nil
 }
 
-// Lock acquires an exclusive lock
 func (l *FileLock) Lock() error {
-	return l.f.Lock()
+	_ = "STUB: not implemented"
+
+	// Unlock releases the lock
+	return nil
 }
 
-// Unlock releases the lock
-func (l *FileLock) Unlock() error {
-	return l.f.Unlock()
-}
+func (l *FileLock) Unlock() error { _ = "STUB: not implemented"; return nil }

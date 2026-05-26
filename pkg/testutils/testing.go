@@ -14,48 +14,25 @@
 
 package testutils
 
-import (
-	"github.com/containernetworking/cni/pkg/version"
-)
-
 // AllSpecVersions contains all CNI spec version numbers
 var AllSpecVersions = [...]string{"0.1.0", "0.2.0", "0.3.0", "0.3.1", "0.4.0", "1.0.0", "1.1.0"}
 
 // SpecVersionHasIPVersion returns true if the given CNI specification version
 // includes the "version" field in the IP address elements
-func SpecVersionHasIPVersion(ver string) bool {
-	for _, i := range []string{"0.3.0", "0.3.1", "0.4.0"} {
-		if ver == i {
-			return true
-		}
-	}
-	return false
-}
+func SpecVersionHasIPVersion(ver string) bool { _ = "STUB: not implemented"; return false }
 
 // SpecVersionHasCHECK returns true if the given CNI specification version
 // supports the CHECK command
-func SpecVersionHasCHECK(ver string) bool {
-	ok, _ := version.GreaterThanOrEqualTo(ver, "0.4.0")
-	return ok
-}
+func SpecVersionHasCHECK(ver string) bool { _ = "STUB: not implemented"; return false }
 
 // SpecVersionHasSTATUS returns true if the given CNI specification version
 // supports the STATUS command
-func SpecVersionHasSTATUS(ver string) bool {
-	ok, _ := version.GreaterThanOrEqualTo(ver, "1.1.0")
-	return ok
-}
+func SpecVersionHasSTATUS(ver string) bool { _ = "STUB: not implemented"; return false }
 
 // SpecVersionHasChaining returns true if the given CNI specification version
 // supports plugin chaining
-func SpecVersionHasChaining(ver string) bool {
-	ok, _ := version.GreaterThanOrEqualTo(ver, "0.3.0")
-	return ok
-}
+func SpecVersionHasChaining(ver string) bool { _ = "STUB: not implemented"; return false }
 
 // SpecVersionHasMultipleIPs returns true if the given CNI specification version
 // supports more than one IP address of each family
-func SpecVersionHasMultipleIPs(ver string) bool {
-	ok, _ := version.GreaterThanOrEqualTo(ver, "0.3.0")
-	return ok
-}
+func SpecVersionHasMultipleIPs(ver string) bool { _ = "STUB: not implemented"; return false }

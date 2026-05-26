@@ -26,18 +26,12 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
-	"log"
 	"net"
-
-	"golang.org/x/sys/unix"
 
 	"github.com/containernetworking/cni/pkg/skel"
 	"github.com/containernetworking/cni/pkg/types"
 	current "github.com/containernetworking/cni/pkg/types/100"
 	"github.com/containernetworking/cni/pkg/version"
-	"github.com/containernetworking/plugins/pkg/utils"
 	bv "github.com/containernetworking/plugins/pkg/utils/buildversion"
 )
 
@@ -92,77 +86,25 @@ type PortMapConf struct {
 // Kubernetes uses 14 and 15, Calico uses 20-31.
 const DefaultMarkBit = 13
 
-func cmdAdd(args *skel.CmdArgs) error {
-	netConf, _, err := parseConfig(args.StdinData, args.IfName)
-	if err != nil {
-		return fmt.Errorf("failed to parse config: %v", err)
-	}
+func cmdAdd(args *skel.CmdArgs) error { _ = "STUB: not implemented"; return nil }
 
-	if netConf.PrevResult == nil {
-		return fmt.Errorf("must be called as chained plugin")
-	}
+// Delete conntrack entries for UDP to avoid conntrack blackholing traffic
+// due to stale connections. We do that after the iptables rules are set, so
+// the new traffic uses them. Failures are informative only.
 
-	if len(netConf.RuntimeConfig.PortMaps) == 0 {
-		return types.PrintResult(netConf.PrevResult, netConf.CNIVersion)
-	}
+// Set the route_localnet bit on the host interface, so that
+// 127/8 can cross a routing boundary.
 
-	netConf.ContainerID = args.ContainerID
+// Delete conntrack entries for UDP to avoid conntrack blackholing traffic
+// due to stale connections. We do that after the iptables rules are set, so
+// the new traffic uses them. Failures are informative only.
 
-	if netConf.ContIPv4.IP != nil {
-		if err := netConf.mapper.forwardPorts(netConf, netConf.ContIPv4); err != nil {
-			return err
-		}
-		// Delete conntrack entries for UDP to avoid conntrack blackholing traffic
-		// due to stale connections. We do that after the iptables rules are set, so
-		// the new traffic uses them. Failures are informative only.
-		if err := deletePortmapStaleConnections(netConf.RuntimeConfig.PortMaps, unix.AF_INET); err != nil {
-			log.Printf("failed to delete stale UDP conntrack entries for %s: %v", netConf.ContIPv4.IP, err)
-		}
+// Pass through the previous result
 
-		if *netConf.SNAT {
-			// Set the route_localnet bit on the host interface, so that
-			// 127/8 can cross a routing boundary.
-			hostIfName := getRoutableHostIF(netConf.ContIPv4.IP)
-			if hostIfName != "" {
-				if err := enableLocalnetRouting(hostIfName); err != nil {
-					return fmt.Errorf("unable to enable route_localnet: %v", err)
-				}
-			}
-		}
-	}
+func cmdDel(args *skel.CmdArgs) error { _ = "STUB: not implemented"; return nil }
 
-	if netConf.ContIPv6.IP != nil {
-		if err := netConf.mapper.forwardPorts(netConf, netConf.ContIPv6); err != nil {
-			return err
-		}
-		// Delete conntrack entries for UDP to avoid conntrack blackholing traffic
-		// due to stale connections. We do that after the iptables rules are set, so
-		// the new traffic uses them. Failures are informative only.
-		if err := deletePortmapStaleConnections(netConf.RuntimeConfig.PortMaps, unix.AF_INET6); err != nil {
-			log.Printf("failed to delete stale UDP conntrack entries for %s: %v", netConf.ContIPv6.IP, err)
-		}
-	}
-
-	// Pass through the previous result
-	return types.PrintResult(netConf.PrevResult, netConf.CNIVersion)
-}
-
-func cmdDel(args *skel.CmdArgs) error {
-	netConf, _, err := parseConfig(args.StdinData, args.IfName)
-	if err != nil {
-		return fmt.Errorf("failed to parse config: %v", err)
-	}
-
-	if len(netConf.RuntimeConfig.PortMaps) == 0 {
-		return nil
-	}
-
-	netConf.ContainerID = args.ContainerID
-
-	// We don't need to parse out whether or not we're using v6 or snat,
-	// deletion is idempotent
-	return netConf.mapper.unforwardPorts(netConf)
-}
+// We don't need to parse out whether or not we're using v6 or snat,
+// deletion is idempotent
 
 func main() {
 	skel.PluginMainFuncs(skel.CNIFuncs{
@@ -174,187 +116,39 @@ func main() {
 	}, version.All, bv.BuildString("portmap"))
 }
 
-func cmdCheck(args *skel.CmdArgs) error {
-	conf, result, err := parseConfig(args.StdinData, args.IfName)
-	if err != nil {
-		return err
-	}
+func cmdCheck(args *skel.CmdArgs) error { _ = "STUB: not implemented"; return nil }
 
-	// Ensure we have previous result.
-	if result == nil {
-		return fmt.Errorf("Required prevResult missing")
-	}
-
-	if len(conf.RuntimeConfig.PortMaps) == 0 {
-		return nil
-	}
-
-	conf.ContainerID = args.ContainerID
-
-	if conf.ContIPv4.IP != nil {
-		if err := conf.mapper.checkPorts(conf, conf.ContIPv4); err != nil {
-			return err
-		}
-	}
-
-	if conf.ContIPv6.IP != nil {
-		if err := conf.mapper.checkPorts(conf, conf.ContIPv6); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
+// Ensure we have previous result.
 
 // parseConfig parses the supplied configuration (and prevResult) from stdin.
 func parseConfig(stdin []byte, ifName string) (*PortMapConf, *current.Result, error) {
-	conf := PortMapConf{}
-
-	if err := json.Unmarshal(stdin, &conf); err != nil {
-		return nil, nil, fmt.Errorf("failed to parse network configuration: %v", err)
-	}
-
-	// Parse previous result.
-	var result *current.Result
-	if conf.RawPrevResult != nil {
-		var err error
-		if err = version.ParsePrevResult(&conf.NetConf); err != nil {
-			return nil, nil, fmt.Errorf("could not parse prevResult: %v", err)
-		}
-
-		result, err = current.NewResultFromResult(conf.PrevResult)
-		if err != nil {
-			return nil, nil, fmt.Errorf("could not convert result to current version: %v", err)
-		}
-	}
-
-	conf.mapper = &portMapperIPTables{}
-
-	if conf.SNAT == nil {
-		tvar := true
-		conf.SNAT = &tvar
-	}
-
-	if conf.MarkMasqBit != nil && conf.ExternalSetMarkChain != nil {
-		return nil, nil, fmt.Errorf("Cannot specify externalSetMarkChain and markMasqBit")
-	}
-
-	if conf.MarkMasqBit == nil {
-		bvar := DefaultMarkBit // go constants are "special"
-		conf.MarkMasqBit = &bvar
-	}
-
-	if *conf.MarkMasqBit < 0 || *conf.MarkMasqBit > 31 {
-		return nil, nil, fmt.Errorf("MasqMarkBit must be between 0 and 31")
-	}
-
-	err := ensureBackend(&conf)
-	if err != nil {
-		return nil, nil, err
-	}
-	switch *conf.Backend {
-	case iptablesBackend:
-		conf.mapper = &portMapperIPTables{}
-
-	case nftablesBackend:
-		conf.mapper = &portMapperNFTables{}
-
-	default:
-		return nil, nil, fmt.Errorf("unrecognized backend %q", *conf.Backend)
-	}
-
-	// Reject invalid port numbers
-	for _, pm := range conf.RuntimeConfig.PortMaps {
-		if pm.ContainerPort <= 0 {
-			return nil, nil, fmt.Errorf("Invalid container port number: %d", pm.ContainerPort)
-		}
-		if pm.HostPort <= 0 {
-			return nil, nil, fmt.Errorf("Invalid host port number: %d", pm.HostPort)
-		}
-	}
-
-	if conf.PrevResult != nil {
-		for _, ip := range result.IPs {
-			isIPv4 := ip.Address.IP.To4() != nil
-			if !isIPv4 && conf.ContIPv6.IP != nil {
-				continue
-			} else if isIPv4 && conf.ContIPv4.IP != nil {
-				continue
-			}
-
-			// Skip known non-sandbox interfaces
-			if ip.Interface != nil {
-				intIdx := *ip.Interface
-				if intIdx >= 0 &&
-					intIdx < len(result.Interfaces) &&
-					(result.Interfaces[intIdx].Name != ifName ||
-						result.Interfaces[intIdx].Sandbox == "") {
-					continue
-				}
-			}
-			if ip.Address.IP.To4() != nil {
-				conf.ContIPv4 = ip.Address
-			} else {
-				conf.ContIPv6 = ip.Address
-			}
-		}
-	}
-
-	return &conf, result, nil
+	_ = "STUB: not implemented"
+	return nil, nil, nil
 }
+
+// Parse previous result.
+
+// go constants are "special"
+
+// Reject invalid port numbers
+
+// Skip known non-sandbox interfaces
 
 // ensureBackend validates and/or sets conf.Backend
-func ensureBackend(conf *PortMapConf) error {
-	backendConfig := make(map[string][]string)
+func ensureBackend(conf *PortMapConf) error { _ = "STUB: not implemented"; return nil }
 
-	if conf.ExternalSetMarkChain != nil {
-		backendConfig[iptablesBackend] = append(backendConfig[iptablesBackend], "externalSetMarkChain")
-	}
-	if conditionsBackend := detectBackendOfConditions(conf.ConditionsV4); conditionsBackend != "" {
-		backendConfig[conditionsBackend] = append(backendConfig[conditionsBackend], "conditionsV4")
-	}
-	if conditionsBackend := detectBackendOfConditions(conf.ConditionsV6); conditionsBackend != "" {
-		backendConfig[conditionsBackend] = append(backendConfig[conditionsBackend], "conditionsV6")
-	}
+// If backend wasn't requested explicitly, default to iptables, unless it is not
+// available (and nftables is). FIXME: flip this default at some point.
 
-	// If backend wasn't requested explicitly, default to iptables, unless it is not
-	// available (and nftables is). FIXME: flip this default at some point.
-	if conf.Backend == nil {
-		if !utils.SupportsIPTables() && utils.SupportsNFTables() {
-			conf.Backend = &nftablesBackend
-		} else {
-			conf.Backend = &iptablesBackend
-		}
-	}
+// Make sure we dont have config for the wrong backend
 
-	// Make sure we dont have config for the wrong backend
-	var wrongBackend string
-	if *conf.Backend == iptablesBackend {
-		wrongBackend = nftablesBackend
-	} else {
-		wrongBackend = iptablesBackend
-	}
-	if len(backendConfig[wrongBackend]) > 0 {
-		return fmt.Errorf("%s backend was requested but configuration contains %s-specific options %v", *conf.Backend, wrongBackend, backendConfig[wrongBackend])
-	}
-
-	// OK
-	return nil
-}
+// OK
 
 // detectBackendOfConditions returns "iptables" if conditions contains iptables
 // conditions, "nftables" if it contains nftables conditions, and "" if it is empty.
-func detectBackendOfConditions(conditions *[]string) string {
-	if conditions == nil || len(*conditions) == 0 || (*conditions)[0] == "" {
-		return ""
-	}
+func detectBackendOfConditions(conditions *[]string) string { _ = "STUB: not implemented"; return "" }
 
-	// The first character of any iptables condition would either be an hyphen
-	// (e.g. "-d", "--sport", "-m") or an exclamation mark.
-	// No nftables condition would start that way. (An nftables condition might
-	// include a negative number, but not as the first token.)
-	if (*conditions)[0][0] == '-' || (*conditions)[0][0] == '!' {
-		return iptablesBackend
-	}
-	return nftablesBackend
-}
+// The first character of any iptables condition would either be an hyphen
+// (e.g. "-d", "--sport", "-m") or an exclamation mark.
+// No nftables condition would start that way. (An nftables condition might
+// include a negative number, but not as the first token.)

@@ -14,24 +14,13 @@
 
 package errors
 
-import "fmt"
-
 // Annotate is used to add extra context to an existing error. The return will be
 // a new error which carries error message from both context message and existing error.
-func Annotate(err error, message string) error {
-	if err == nil {
-		return nil
-	}
-
-	return fmt.Errorf("%s: %v", message, err)
-}
+func Annotate(err error, message string) error { _ = "STUB: not implemented"; return nil }
 
 // Annotatef is used to add extra context with args to an existing error. The return will be
 // a new error which carries error message from both context message and existing error.
 func Annotatef(err error, message string, args ...interface{}) error {
-	if err == nil {
-		return nil
-	}
-
-	return fmt.Errorf("%s: %v", fmt.Sprintf(message, args...), err)
+	_ = "STUB: not implemented"
+	return nil
 }

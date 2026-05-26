@@ -15,11 +15,6 @@
 package link
 
 import (
-	"context"
-	"fmt"
-	"os"
-	"time"
-
 	"github.com/networkplumbing/go-nft/nft"
 	"github.com/networkplumbing/go-nft/nft/schema"
 )
@@ -45,25 +40,23 @@ type SpoofChecker struct {
 type defaultNftConfigurer struct{}
 
 func (dnc defaultNftConfigurer) Apply(cfg *nft.Config) (*nft.Config, error) {
-	const timeout = 55 * time.Second
-	ctxWithTimeout, cancelFunc := context.WithTimeout(context.Background(), timeout)
-	defer cancelFunc()
-	return nft.ApplyConfigEcho(ctxWithTimeout, cfg)
+	_ = "STUB: not implemented"
+	return nil, nil
 }
 
 func (dnc defaultNftConfigurer) Read(filterCommands ...string) (*nft.Config, error) {
-	const timeout = 55 * time.Second
-	ctxWithTimeout, cancelFunc := context.WithTimeout(context.Background(), timeout)
-	defer cancelFunc()
-	return nft.ReadConfigContext(ctxWithTimeout, filterCommands...)
+	_ = "STUB: not implemented"
+	return nil, nil
 }
 
 func NewSpoofChecker(iface, macAddress, refID string) *SpoofChecker {
-	return NewSpoofCheckerWithConfigurer(iface, macAddress, refID, defaultNftConfigurer{})
+	_ = "STUB: not implemented"
+	return nil
 }
 
 func NewSpoofCheckerWithConfigurer(iface, macAddress, refID string, configurer NftConfigurer) *SpoofChecker {
-	return &SpoofChecker{iface, macAddress, refID, configurer, nil}
+	_ = "STUB: not implemented"
+	return nil
 }
 
 // Setup applies nftables configuration to restrict traffic
@@ -81,190 +74,49 @@ func NewSpoofCheckerWithConfigurer(iface, macAddress, refID string, configurer N
 // exists. This avoids the need to query the existing state and acting upon it (a raceful pattern).
 // Although two transactions are taken place, only the 2nd one where the rules
 // are added has a real impact on the system.
-func (sc *SpoofChecker) Setup() error {
-	baseConfig := nft.NewConfig()
-
-	baseConfig.AddTable(&schema.Table{Family: schema.FamilyBridge, Name: natTableName})
-
-	baseConfig.AddChain(sc.baseChain())
-	ifaceChain := sc.ifaceChain()
-	baseConfig.AddChain(ifaceChain)
-	macChain := sc.macChain(ifaceChain.Name)
-	baseConfig.AddChain(macChain)
-
-	if _, err := sc.configurer.Apply(baseConfig); err != nil {
-		return fmt.Errorf("failed to setup spoof-check: %v", err)
-	}
-
-	rulesConfig := nft.NewConfig()
-
-	rulesConfig.FlushChain(ifaceChain)
-	rulesConfig.FlushChain(macChain)
-
-	rulesConfig.AddRule(sc.matchIfaceJumpToChainRule(preRoutingBaseChainName, ifaceChain.Name))
-	rulesConfig.AddRule(sc.jumpToChainRule(ifaceChain.Name, macChain.Name))
-	rulesConfig.AddRule(sc.matchMacRule(macChain.Name))
-	rulesConfig.AddRule(sc.dropRule(macChain.Name))
-
-	rulestore, err := sc.configurer.Apply(rulesConfig)
-	if err != nil {
-		return fmt.Errorf("failed to setup spoof-check: %v", err)
-	}
-	sc.rulestore = rulestore
-
-	return nil
-}
+func (sc *SpoofChecker) Setup() error { _ = "STUB: not implemented"; return nil }
 
 func (sc *SpoofChecker) findPreroutingRule(ruleToFind *schema.Rule) ([]*schema.Rule, error) {
-	ruleset := sc.rulestore
-	if ruleset == nil {
-		chain, err := sc.configurer.Read(listChainBridgeNatPrerouting()...)
-		if err != nil {
-			return nil, err
-		}
-		ruleset = chain
-	}
-	return ruleset.LookupRule(ruleToFind), nil
+	_ = "STUB: not implemented"
+	return nil, nil
 }
 
 // Teardown removes the interface and mac-address specific chains and their rules.
 // The table and base-chain are expected to survive while the base-chain rule that matches the
 // interface is removed.
-func (sc *SpoofChecker) Teardown() error {
-	ifaceChain := sc.ifaceChain()
-	expectedRuleToFind := sc.matchIfaceJumpToChainRule(preRoutingBaseChainName, ifaceChain.Name)
-	// It is safer to exclude the statement matching, avoiding cases where a current statement includes
-	// additional default entries (e.g. counters).
-	ruleToFindExcludingStatements := *expectedRuleToFind
-	ruleToFindExcludingStatements.Expr = nil
+func (sc *SpoofChecker) Teardown() error { _ = "STUB: not implemented"; return nil }
 
-	rules, ifaceMatchRuleErr := sc.findPreroutingRule(&ruleToFindExcludingStatements)
-	if ifaceMatchRuleErr == nil && len(rules) > 0 {
-		c := nft.NewConfig()
-		for _, rule := range rules {
-			c.DeleteRule(rule)
-		}
-		if _, err := sc.configurer.Apply(c); err != nil {
-			ifaceMatchRuleErr = fmt.Errorf("failed to delete iface match rule: %v", err)
-		}
-		// Drop the cache, it should contain deleted rule(s) now
-		sc.rulestore = nil
-	} else {
-		fmt.Fprintf(os.Stderr, "spoofcheck/teardown: unable to detect iface match rule for deletion: %+v", expectedRuleToFind)
-	}
+// It is safer to exclude the statement matching, avoiding cases where a current statement includes
+// additional default entries (e.g. counters).
 
-	regularChainsConfig := nft.NewConfig()
-	regularChainsConfig.DeleteChain(ifaceChain)
-	regularChainsConfig.DeleteChain(sc.macChain(ifaceChain.Name))
+// Drop the cache, it should contain deleted rule(s) now
 
-	var regularChainsErr error
-	if _, err := sc.configurer.Apply(regularChainsConfig); err != nil {
-		regularChainsErr = fmt.Errorf("failed to delete regular chains: %v", err)
-	}
-
-	if ifaceMatchRuleErr != nil || regularChainsErr != nil {
-		return fmt.Errorf("failed to teardown spoof-check: %v, %v", ifaceMatchRuleErr, regularChainsErr)
-	}
+func (sc *SpoofChecker) matchIfaceJumpToChainRule(chain, toChain string) *schema.Rule {
+	_ = "STUB: not implemented"
 	return nil
 }
 
-func (sc *SpoofChecker) matchIfaceJumpToChainRule(chain, toChain string) *schema.Rule {
-	return &schema.Rule{
-		Family: schema.FamilyBridge,
-		Table:  natTableName,
-		Chain:  chain,
-		Expr: []schema.Statement{
-			{Match: &schema.Match{
-				Op:    schema.OperEQ,
-				Left:  schema.Expression{RowData: []byte(`{"meta":{"key":"iifname"}}`)},
-				Right: schema.Expression{String: &sc.iface},
-			}},
-			{Verdict: schema.Verdict{Jump: &schema.ToTarget{Target: toChain}}},
-		},
-		Comment: ruleComment(sc.refID),
-	}
-}
-
 func (sc *SpoofChecker) jumpToChainRule(chain, toChain string) *schema.Rule {
-	return &schema.Rule{
-		Family: schema.FamilyBridge,
-		Table:  natTableName,
-		Chain:  chain,
-		Expr: []schema.Statement{
-			{Verdict: schema.Verdict{Jump: &schema.ToTarget{Target: toChain}}},
-		},
-		Comment: ruleComment(sc.refID),
-	}
+	_ = "STUB: not implemented"
+	return nil
 }
 
 func (sc *SpoofChecker) matchMacRule(chain string) *schema.Rule {
-	return &schema.Rule{
-		Family: schema.FamilyBridge,
-		Table:  natTableName,
-		Chain:  chain,
-		Expr: []schema.Statement{
-			{Match: &schema.Match{
-				Op: schema.OperEQ,
-				Left: schema.Expression{Payload: &schema.Payload{
-					Protocol: schema.PayloadProtocolEther,
-					Field:    schema.PayloadFieldEtherSAddr,
-				}},
-				Right: schema.Expression{String: &sc.macAddress},
-			}},
-			{Verdict: schema.Verdict{SimpleVerdict: schema.SimpleVerdict{Return: true}}},
-		},
-		Comment: ruleComment(sc.refID),
-	}
+	_ = "STUB: not implemented"
+	return nil
 }
 
-func (sc *SpoofChecker) dropRule(chain string) *schema.Rule {
-	return &schema.Rule{
-		Family: schema.FamilyBridge,
-		Table:  natTableName,
-		Chain:  chain,
-		Expr: []schema.Statement{
-			{Verdict: schema.Verdict{SimpleVerdict: schema.SimpleVerdict{Drop: true}}},
-		},
-		Comment: ruleComment(sc.refID),
-	}
-}
+func (sc *SpoofChecker) dropRule(chain string) *schema.Rule { _ = "STUB: not implemented"; return nil }
 
-func (sc *SpoofChecker) baseChain() *schema.Chain {
-	chainPriority := -300
-	return &schema.Chain{
-		Family: schema.FamilyBridge,
-		Table:  natTableName,
-		Name:   preRoutingBaseChainName,
-		Type:   schema.TypeFilter,
-		Hook:   schema.HookPreRouting,
-		Prio:   &chainPriority,
-		Policy: schema.PolicyAccept,
-	}
-}
+func (sc *SpoofChecker) baseChain() *schema.Chain { _ = "STUB: not implemented"; return nil }
 
-func (sc *SpoofChecker) ifaceChain() *schema.Chain {
-	ifaceChainName := "cni-br-iface-" + sc.refID
-	return &schema.Chain{
-		Family: schema.FamilyBridge,
-		Table:  natTableName,
-		Name:   ifaceChainName,
-	}
-}
+func (sc *SpoofChecker) ifaceChain() *schema.Chain { _ = "STUB: not implemented"; return nil }
 
 func (sc *SpoofChecker) macChain(ifaceChainName string) *schema.Chain {
-	macChainName := ifaceChainName + "-mac"
-	return &schema.Chain{
-		Family: schema.FamilyBridge,
-		Table:  natTableName,
-		Name:   macChainName,
-	}
+	_ = "STUB: not implemented"
+	return nil
 }
 
-func ruleComment(id string) string {
-	const refIDPrefix = "macspoofchk-"
-	return refIDPrefix + id
-}
+func ruleComment(id string) string { _ = "STUB: not implemented"; return "" }
 
-func listChainBridgeNatPrerouting() []string {
-	return []string{"chain", "bridge", natTableName, preRoutingBaseChainName}
-}
+func listChainBridgeNatPrerouting() []string { _ = "STUB: not implemented"; return nil }

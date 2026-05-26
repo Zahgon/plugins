@@ -15,9 +15,7 @@
 package ip
 
 import (
-	"fmt"
 	"net"
-	"strings"
 )
 
 // IP is a CNI maintained type inherited from net.IPNet which can
@@ -27,78 +25,27 @@ type IP struct {
 }
 
 // newIP will create an IP with net.IP and net.IPMask
-func newIP(ip net.IP, mask net.IPMask) *IP {
-	return &IP{
-		IPNet: net.IPNet{
-			IP:   ip,
-			Mask: mask,
-		},
-	}
-}
+func newIP(ip net.IP, mask net.IPMask) *IP { _ = "STUB: not implemented"; return nil }
 
 // ParseIP will parse string s as an IP, and return it.
 // The string s must be formed like <ip>[/<prefix>].
 // If s is not a valid textual representation of an IP,
 // will return nil.
-func ParseIP(s string) *IP {
-	if strings.ContainsAny(s, "/") {
-		ip, ipNet, err := net.ParseCIDR(s)
-		if err != nil {
-			return nil
-		}
-		return newIP(ip, ipNet.Mask)
-	}
-	ip := net.ParseIP(s)
-	if ip == nil {
-		return nil
-	}
-	return newIP(ip, nil)
-}
+func ParseIP(s string) *IP { _ = "STUB: not implemented"; return nil }
 
 // ToIP will return a net.IP in standard form from this IP.
 // If this IP can not be converted to a valid net.IP, will return nil.
-func (i *IP) ToIP() net.IP {
-	switch {
-	case i.IP.To4() != nil:
-		return i.IP.To4()
-	case i.IP.To16() != nil:
-		return i.IP.To16()
-	default:
-		return nil
-	}
-}
+func (i *IP) ToIP() net.IP { _ = "STUB: not implemented"; return *new(net.IP) }
 
 // String returns the string form of this IP.
-func (i *IP) String() string {
-	if len(i.Mask) > 0 {
-		return i.IPNet.String()
-	}
-	return i.IP.String()
-}
+func (i *IP) String() string { _ = "STUB: not implemented"; return "" }
 
 // MarshalText implements the encoding.TextMarshaler interface.
 // The encoding is the same as returned by String,
 // But when len(ip) is zero, will return an empty slice.
-func (i *IP) MarshalText() ([]byte, error) {
-	if len(i.IP) == 0 {
-		return []byte{}, nil
-	}
-	return []byte(i.String()), nil
-}
+func (i *IP) MarshalText() ([]byte, error) { _ = "STUB: not implemented"; return nil, nil }
 
 // UnmarshalText implements the encoding.TextUnmarshaler interface.
 // The textual bytes are expected in a form accepted by Parse,
 // But when len(b) is zero, will return an empty IP.
-func (i *IP) UnmarshalText(b []byte) error {
-	if len(b) == 0 {
-		*i = IP{}
-		return nil
-	}
-
-	ip := ParseIP(string(b))
-	if ip == nil {
-		return fmt.Errorf("invalid IP address %s", string(b))
-	}
-	*i = *ip
-	return nil
-}
+func (i *IP) UnmarshalText(b []byte) error { _ = "STUB: not implemented"; return nil }

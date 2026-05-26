@@ -18,105 +18,24 @@
 package ip
 
 import (
-	"fmt"
-	"net"
-
-	"github.com/vishvananda/netlink"
-
 	"github.com/containernetworking/cni/pkg/types"
 	current "github.com/containernetworking/cni/pkg/types/100"
-	"github.com/containernetworking/plugins/pkg/netlinksafe"
 )
 
 func ValidateExpectedInterfaceIPs(ifName string, resultIPs []*current.IPConfig) error {
+	_ = "STUB: not implemented"
 	// Ensure ips
-	for _, ips := range resultIPs {
-		ourAddr := netlink.Addr{IPNet: &ips.Address}
-		match := false
-
-		link, err := netlinksafe.LinkByName(ifName)
-		if err != nil {
-			return fmt.Errorf("Cannot find container link %v", ifName)
-		}
-
-		addrList, err := netlinksafe.AddrList(link, netlink.FAMILY_ALL)
-		if err != nil {
-			return fmt.Errorf("Cannot obtain List of IP Addresses")
-		}
-
-		for _, addr := range addrList {
-			if addr.Equal(ourAddr) {
-				match = true
-				break
-			}
-		}
-		if !match {
-			return fmt.Errorf("Failed to match addr %v on interface %v", ourAddr, ifName)
-		}
-
-		// Convert the host/prefixlen to just prefix for route lookup.
-		_, ourPrefix, err := net.ParseCIDR(ourAddr.String())
-		if err != nil {
-			return err
-		}
-
-		findGwy := &netlink.Route{Dst: ourPrefix}
-		routeFilter := netlink.RT_FILTER_DST
-
-		family := netlink.FAMILY_V6
-		if ips.Address.IP.To4() != nil {
-			family = netlink.FAMILY_V4
-		}
-
-		gwy, err := netlinksafe.RouteListFiltered(family, findGwy, routeFilter)
-		if err != nil {
-			return fmt.Errorf("Error %v trying to find Gateway %v for interface %v", err, ips.Gateway, ifName)
-		}
-		if gwy == nil {
-			return fmt.Errorf("Failed to find Gateway %v for interface %v", ips.Gateway, ifName)
-		}
-	}
-
 	return nil
 }
+
+// Convert the host/prefixlen to just prefix for route lookup.
 
 func ValidateExpectedRoute(resultRoutes []*types.Route) error {
+	_ = "STUB: not implemented"
 	// Ensure that each static route in prevResults is found in the routing table
-	for _, route := range resultRoutes {
-		find := &netlink.Route{Dst: &route.Dst, Gw: route.GW}
-		routeFilter := netlink.RT_FILTER_DST
-		if route.GW != nil {
-			routeFilter |= netlink.RT_FILTER_GW
-		}
-		var family int
-
-		switch {
-		case route.Dst.IP.To4() != nil:
-			family = netlink.FAMILY_V4
-			// Default route needs Dst set to nil
-			if route.Dst.String() == "0.0.0.0/0" {
-				find = &netlink.Route{Dst: nil, Gw: route.GW}
-				routeFilter = netlink.RT_FILTER_DST
-			}
-		case len(route.Dst.IP) == net.IPv6len:
-			family = netlink.FAMILY_V6
-			// Default route needs Dst set to nil
-			if route.Dst.String() == "::/0" {
-				find = &netlink.Route{Dst: nil, Gw: route.GW}
-				routeFilter = netlink.RT_FILTER_DST
-			}
-		default:
-			return fmt.Errorf("Invalid static route found %v", route)
-		}
-
-		wasFound, err := netlinksafe.RouteListFiltered(family, find, routeFilter)
-		if err != nil {
-			return fmt.Errorf("Expected Route %v not route table lookup error %v", route, err)
-		}
-		if wasFound == nil {
-			return fmt.Errorf("Expected Route %v not found in routing table", route)
-		}
-	}
-
 	return nil
 }
+
+// Default route needs Dst set to nil
+
+// Default route needs Dst set to nil

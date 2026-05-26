@@ -15,13 +15,7 @@
 package utils
 
 import (
-	"fmt"
-	"net"
-
 	"github.com/vishvananda/netlink"
-	"golang.org/x/sys/unix"
-
-	"github.com/containernetworking/plugins/pkg/netlinksafe"
 )
 
 // Assigned Internet Protocol Numbers
@@ -34,42 +28,20 @@ const (
 
 // getNetlinkFamily returns the Netlink IP family constant
 func getNetlinkFamily(isIPv6 bool) netlink.InetFamily {
-	if isIPv6 {
-		return unix.AF_INET6
-	}
-	return unix.AF_INET
+	_ = "STUB: not implemented"
+	return *new(netlink.InetFamily)
 }
 
 // DeleteConntrackEntriesForDstIP delete the conntrack entries for the connections
 // specified by the given destination IP and protocol
 func DeleteConntrackEntriesForDstIP(dstIP string, protocol uint8) error {
-	ip := net.ParseIP(dstIP)
-	if ip == nil {
-		return fmt.Errorf("error deleting connection tracking state, bad IP %s", ip)
-	}
-	family := getNetlinkFamily(ip.To4() == nil)
-
-	filter := &netlink.ConntrackFilter{}
-	filter.AddIP(netlink.ConntrackOrigDstIP, ip)
-	filter.AddProtocol(protocol)
-
-	_, err := netlinksafe.ConntrackDeleteFilters(netlink.ConntrackTable, family, filter)
-	if err != nil {
-		return fmt.Errorf("error deleting connection tracking state for protocol: %d IP: %s, error: %v", protocol, ip, err)
-	}
+	_ = "STUB: not implemented"
 	return nil
 }
 
 // DeleteConntrackEntriesForDstPort delete the conntrack entries for the connections specified
 // by the given destination port, protocol and IP family
 func DeleteConntrackEntriesForDstPort(port uint16, protocol uint8, family netlink.InetFamily) error {
-	filter := &netlink.ConntrackFilter{}
-	filter.AddProtocol(protocol)
-	filter.AddPort(netlink.ConntrackOrigDstPort, port)
-
-	_, err := netlinksafe.ConntrackDeleteFilters(netlink.ConntrackTable, family, filter)
-	if err != nil {
-		return fmt.Errorf("error deleting connection tracking state for protocol: %d Port: %d, error: %v", protocol, port, err)
-	}
+	_ = "STUB: not implemented"
 	return nil
 }

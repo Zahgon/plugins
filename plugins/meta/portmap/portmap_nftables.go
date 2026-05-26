@@ -15,10 +15,7 @@
 package main
 
 import (
-	"context"
-	"fmt"
 	"net"
-	"strconv"
 
 	"sigs.k8s.io/knftables"
 )
@@ -58,319 +55,63 @@ type portMapperNFTables struct {
 
 // getPortMapNFT creates an nftables.Interface for port mapping for the IP family of ipn
 func (pmNFT *portMapperNFTables) getPortMapNFT(ipv6 bool) (knftables.Interface, error) {
-	var err error
-	if ipv6 {
-		if pmNFT.ipv6 == nil {
-			pmNFT.ipv6, err = knftables.New(knftables.IPv6Family, tableName)
-			if err != nil {
-				return nil, err
-			}
-		}
-		return pmNFT.ipv6, nil
-	}
-
-	if pmNFT.ipv4 == nil {
-		pmNFT.ipv4, err = knftables.New(knftables.IPv4Family, tableName)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return pmNFT.ipv4, err
+	_ = "STUB: not implemented"
+	return *new(knftables.Interface), nil
 }
 
 // forwardPorts establishes port forwarding to a given container IP.
 // containerNet.IP can be either v4 or v6.
 func (pmNFT *portMapperNFTables) forwardPorts(config *PortMapConf, containerNet net.IPNet) error {
-	isV6 := (containerNet.IP.To4() == nil)
-	nft, err := pmNFT.getPortMapNFT(isV6)
-	if err != nil {
-		return err
-	}
-
-	var ipX string
-	var conditions []string
-	if isV6 {
-		ipX = "ip6"
-		if config.ConditionsV6 != nil {
-			conditions = *config.ConditionsV6
-		}
-	} else if !isV6 {
-		ipX = "ip"
-		if config.ConditionsV4 != nil {
-			conditions = *config.ConditionsV4
-		}
-	}
-
-	tx := nft.NewTransaction()
-
-	// Ensure basic rule structure
-	tx.Add(&knftables.Table{
-		Comment: knftables.PtrTo("CNI portmap plugin"),
-	})
-
-	tx.Add(&knftables.Chain{
-		Name: hostPortsChain,
-	})
-
-	tx.Add(&knftables.Chain{
-		Name: hostIPHostPortsChain,
-	})
-
-	// setup intermediate chain
-	tx.Add(&knftables.Chain{
-		Name: hostPortsAllChain,
-	})
-
-	tx.Flush(&knftables.Chain{
-		Name: hostPortsAllChain,
-	})
-
-	tx.Add(&knftables.Rule{
-		Chain: hostPortsAllChain,
-		Rule: knftables.Concat(
-			"jump", hostIPHostPortsChain,
-		),
-	})
-
-	tx.Add(&knftables.Rule{
-		Chain: hostPortsAllChain,
-		Rule: knftables.Concat(
-			"jump", hostPortsChain,
-		),
-	})
-
-	tx.Add(&knftables.Chain{
-		Name:     "prerouting",
-		Type:     knftables.PtrTo(knftables.NATType),
-		Hook:     knftables.PtrTo(knftables.PreroutingHook),
-		Priority: knftables.PtrTo(knftables.DNATPriority),
-	})
-	tx.Flush(&knftables.Chain{
-		Name: "prerouting",
-	})
-	tx.Add(&knftables.Rule{
-		Chain: "prerouting",
-		Rule: knftables.Concat(
-			conditions,
-			"fib daddr type local",
-			"jump", hostPortsAllChain,
-		),
-	})
-
-	tx.Add(&knftables.Chain{
-		Name:     "output",
-		Type:     knftables.PtrTo(knftables.NATType),
-		Hook:     knftables.PtrTo(knftables.OutputHook),
-		Priority: knftables.PtrTo(knftables.DNATPriority),
-	})
-	tx.Flush(&knftables.Chain{
-		Name: "output",
-	})
-	tx.Add(&knftables.Rule{
-		Chain: "output",
-		Rule: knftables.Concat(
-			conditions,
-			"fib daddr type local",
-			"jump", hostPortsAllChain,
-		),
-	})
-
-	if *config.SNAT {
-		tx.Add(&knftables.Chain{
-			Name:     masqueradingChain,
-			Type:     knftables.PtrTo(knftables.NATType),
-			Hook:     knftables.PtrTo(knftables.PostroutingHook),
-			Priority: knftables.PtrTo(knftables.SNATPriority),
-		})
-	}
-
-	// Set up this container
-	for _, e := range config.RuntimeConfig.PortMaps {
-		useHostIP := false
-		if e.HostIP != "" {
-			hostIP := net.ParseIP(e.HostIP)
-			isHostV6 := (hostIP.To4() == nil)
-			// Ignore wrong-IP-family HostIPs
-			if isV6 != isHostV6 {
-				continue
-			}
-
-			// Unspecified addresses cannot be used as destination
-			useHostIP = !hostIP.IsUnspecified()
-		}
-
-		if useHostIP {
-			// we add the rule to 'hostports' instead of 'hostip_hostports'
-			// as we want to remove 'hostip_hostports' long-term
-			tx.Add(&knftables.Rule{
-				Chain: hostPortsChain,
-				Rule: knftables.Concat(
-					ipX, "daddr", e.HostIP,
-					e.Protocol, "dport", e.HostPort,
-					"dnat to", net.JoinHostPort(containerNet.IP.String(), strconv.Itoa(e.ContainerPort)),
-				),
-				Comment: &config.ContainerID,
-			})
-		} else {
-			tx.Add(&knftables.Rule{
-				Chain: hostPortsChain,
-				Rule: knftables.Concat(
-					e.Protocol, "dport", e.HostPort,
-					"dnat to", net.JoinHostPort(containerNet.IP.String(), strconv.Itoa(e.ContainerPort)),
-				),
-				Comment: &config.ContainerID,
-			})
-		}
-	}
-
-	if *config.SNAT {
-		// Add mark-to-masquerade rules for hairpin and localhost
-		// In theory we should validate that the original dst IP and port are as
-		// expected, but *any* traffic matching one of these patterns would need
-		// to be masqueraded to be able to work correctly anyway.
-
-		var masqSrcAddr string
-		if config.MasqAll {
-			// MasqAll: match traffic from any source IP
-			if isV6 {
-				masqSrcAddr = "::/0"
-			} else {
-				masqSrcAddr = "0.0.0.0/0"
-			}
-		} else {
-			// Default: only match traffic from container's own IP (hairpin)
-			masqSrcAddr = containerNet.IP.String()
-		}
-
-		tx.Add(&knftables.Rule{
-			Chain: masqueradingChain,
-			Rule: knftables.Concat(
-				ipX, "saddr", masqSrcAddr,
-				ipX, "daddr", containerNet.IP,
-				"masquerade",
-			),
-			Comment: &config.ContainerID,
-		})
-		if !isV6 && !config.MasqAll {
-			// Only add localhost rule when MasqAll is false
-			// (when MasqAll is true, 0.0.0.0/0 already covers 127.0.0.1)
-			tx.Add(&knftables.Rule{
-				Chain: masqueradingChain,
-				Rule: knftables.Concat(
-					ipX, "saddr 127.0.0.1",
-					ipX, "daddr", containerNet.IP,
-					"masquerade",
-				),
-				Comment: &config.ContainerID,
-			})
-		}
-	}
-
-	err = nft.Run(context.TODO(), tx)
-	if err != nil {
-		return fmt.Errorf("unable to set up nftables rules for port mappings: %v", err)
-	}
-
+	_ = "STUB: not implemented"
 	return nil
 }
+
+// Ensure basic rule structure
+
+// setup intermediate chain
+
+// Set up this container
+
+// Ignore wrong-IP-family HostIPs
+
+// Unspecified addresses cannot be used as destination
+
+// we add the rule to 'hostports' instead of 'hostip_hostports'
+// as we want to remove 'hostip_hostports' long-term
+
+// Add mark-to-masquerade rules for hairpin and localhost
+// In theory we should validate that the original dst IP and port are as
+// expected, but *any* traffic matching one of these patterns would need
+// to be masqueraded to be able to work correctly anyway.
+
+// MasqAll: match traffic from any source IP
+
+// Default: only match traffic from container's own IP (hairpin)
+
+// Only add localhost rule when MasqAll is false
+// (when MasqAll is true, 0.0.0.0/0 already covers 127.0.0.1)
 
 func (pmNFT *portMapperNFTables) checkPorts(config *PortMapConf, containerNet net.IPNet) error {
-	isV6 := (containerNet.IP.To4() == nil)
-
-	var hostPorts, masqueradings int
-	for _, e := range config.RuntimeConfig.PortMaps {
-		if e.HostIP != "" {
-			hostIP := net.ParseIP(e.HostIP)
-			isHostV6 := (hostIP.To4() == nil)
-			// Ignore wrong-IP-family HostIPs
-			if isV6 != isHostV6 {
-				continue
-			}
-		}
-		hostPorts++
-	}
-	if *config.SNAT {
-		masqueradings = 1
-		// When MasqAll is false and IPv4, we have 2 rules:
-		// 1. hairpin rule (container IP -> container IP)
-		// 2. localhost rule (127.0.0.1 -> container IP)
-		// When MasqAll is true, we only have 1 rule (0.0.0.0/0 -> container IP)
-		if !isV6 && !config.MasqAll {
-			masqueradings = 2
-		}
-	}
-
-	nft, err := pmNFT.getPortMapNFT(isV6)
-	if err != nil {
-		return err
-	}
-	if hostPorts > 0 {
-		err := checkPortsAgainstRules(nft, hostPortsChain, config.ContainerID, hostPorts)
-		if err != nil {
-			return err
-		}
-	}
-	if masqueradings > 0 {
-		err := checkPortsAgainstRules(nft, masqueradingChain, config.ContainerID, masqueradings)
-		if err != nil {
-			return err
-		}
-	}
-
+	_ = "STUB: not implemented"
 	return nil
 }
 
+// Ignore wrong-IP-family HostIPs
+
+// When MasqAll is false and IPv4, we have 2 rules:
+// 1. hairpin rule (container IP -> container IP)
+// 2. localhost rule (127.0.0.1 -> container IP)
+// When MasqAll is true, we only have 1 rule (0.0.0.0/0 -> container IP)
+
 func checkPortsAgainstRules(nft knftables.Interface, chain, comment string, nPorts int) error {
-	rules, err := nft.ListRules(context.TODO(), chain)
-	if err != nil {
-		return err
-	}
-
-	found := 0
-	for _, r := range rules {
-		if r.Comment != nil && *r.Comment == comment {
-			found++
-		}
-	}
-	if found < nPorts {
-		return fmt.Errorf("missing hostport rules in %q chain", chain)
-	}
-
+	_ = "STUB: not implemented"
 	return nil
 }
 
 // unforwardPorts deletes any nftables rules created by this plugin.
 // It should be idempotent - it will not error if the chain does not exist.
 func (pmNFT *portMapperNFTables) unforwardPorts(config *PortMapConf) error {
+	_ = "STUB: not implemented"
 	// Always clear both IPv4 and IPv6, just to be sure
-	for _, family := range []knftables.Family{knftables.IPv4Family, knftables.IPv6Family} {
-		nft, err := pmNFT.getPortMapNFT(family == knftables.IPv6Family)
-		if err != nil {
-			continue
-		}
-
-		tx := nft.NewTransaction()
-		for _, chain := range []string{hostPortsChain, hostIPHostPortsChain, masqueradingChain} {
-			rules, err := nft.ListRules(context.TODO(), chain)
-			if err != nil {
-				if knftables.IsNotFound(err) {
-					continue
-				}
-				return fmt.Errorf("could not list rules in table %s: %w", tableName, err)
-			}
-
-			for _, r := range rules {
-				if r.Comment != nil && *r.Comment == config.ContainerID {
-					tx.Delete(r)
-				}
-			}
-		}
-
-		err = nft.Run(context.TODO(), tx)
-		if err != nil {
-			return fmt.Errorf("error deleting nftables rules: %w", err)
-		}
-	}
-
 	return nil
 }

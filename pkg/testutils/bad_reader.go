@@ -14,20 +14,11 @@
 
 package testutils
 
-import "errors"
-
 // BadReader is an io.Reader which always errors
 type BadReader struct {
 	Error error
 }
 
-func (r *BadReader) Read(_ []byte) (int, error) {
-	if r.Error != nil {
-		return 0, r.Error
-	}
-	return 0, errors.New("banana")
-}
+func (r *BadReader) Read(_ []byte) (int, error) { _ = "STUB: not implemented"; return 0, nil }
 
-func (r *BadReader) Close() error {
-	return nil
-}
+func (r *BadReader) Close() error { _ = "STUB: not implemented"; return nil }

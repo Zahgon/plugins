@@ -15,12 +15,9 @@
 package allocator
 
 import (
-	"encoding/json"
-	"fmt"
 	"net"
 
 	"github.com/containernetworking/cni/pkg/types"
-	"github.com/containernetworking/cni/pkg/version"
 	"github.com/containernetworking/plugins/pkg/ip"
 )
 
@@ -74,98 +71,25 @@ type Range struct {
 
 // NewIPAMConfig creates a NetworkConfig from the given network name.
 func LoadIPAMConfig(bytes []byte, envArgs string) (*IPAMConfig, string, error) {
-	n := Net{}
-	if err := json.Unmarshal(bytes, &n); err != nil {
-		return nil, "", err
-	}
-
-	if n.IPAM == nil {
-		return nil, "", fmt.Errorf("IPAM config missing 'ipam' key")
-	}
-
-	// parse custom IP from env args
-	if envArgs != "" {
-		e := IPAMEnvArgs{}
-		err := types.LoadArgs(envArgs, &e)
-		if err != nil {
-			return nil, "", err
-		}
-
-		if e.IP.ToIP() != nil {
-			n.IPAM.IPArgs = []net.IP{e.IP.ToIP()}
-		}
-	}
-
-	// parse custom IPs from CNI args in network config
-	if n.Args != nil && n.Args.A != nil && len(n.Args.A.IPs) != 0 {
-		for _, i := range n.Args.A.IPs {
-			n.IPAM.IPArgs = append(n.IPAM.IPArgs, i.ToIP())
-		}
-	}
-
-	// parse custom IPs from runtime configuration
-	if len(n.RuntimeConfig.IPs) > 0 {
-		for _, i := range n.RuntimeConfig.IPs {
-			n.IPAM.IPArgs = append(n.IPAM.IPArgs, i.ToIP())
-		}
-	}
-
-	for idx := range n.IPAM.IPArgs {
-		if err := canonicalizeIP(&n.IPAM.IPArgs[idx]); err != nil {
-			return nil, "", fmt.Errorf("cannot understand ip: %v", err)
-		}
-	}
-
-	// If a single range (old-style config) is specified, prepend it to
-	// the Ranges array
-	if n.IPAM.Range != nil && n.IPAM.Range.Subnet.IP != nil {
-		n.IPAM.Ranges = append([]RangeSet{{*n.IPAM.Range}}, n.IPAM.Ranges...)
-	}
-	n.IPAM.Range = nil
-
-	// If a range is supplied as a runtime config, prepend it to the Ranges
-	if len(n.RuntimeConfig.IPRanges) > 0 {
-		n.IPAM.Ranges = append(n.RuntimeConfig.IPRanges, n.IPAM.Ranges...)
-	}
-
-	if len(n.IPAM.Ranges) == 0 {
-		return nil, "", fmt.Errorf("no IP ranges specified")
-	}
-
-	// Validate all ranges
-	numV4 := 0
-	numV6 := 0
-	for i := range n.IPAM.Ranges {
-		if err := n.IPAM.Ranges[i].Canonicalize(); err != nil {
-			return nil, "", fmt.Errorf("invalid range set %d: %s", i, err)
-		}
-
-		if n.IPAM.Ranges[i][0].RangeStart.To4() != nil {
-			numV4++
-		} else {
-			numV6++
-		}
-	}
-
-	// CNI spec 0.2.0 and below supported only one v4 and v6 address
-	if numV4 > 1 || numV6 > 1 {
-		if ok, _ := version.GreaterThanOrEqualTo(n.CNIVersion, "0.3.0"); !ok {
-			return nil, "", fmt.Errorf("CNI version %v does not support more than 1 address per family", n.CNIVersion)
-		}
-	}
-
-	// Check for overlaps
-	l := len(n.IPAM.Ranges)
-	for i, p1 := range n.IPAM.Ranges[:l-1] {
-		for j, p2 := range n.IPAM.Ranges[i+1:] {
-			if p1.Overlaps(&p2) {
-				return nil, "", fmt.Errorf("range set %d overlaps with %d", i, (i + j + 1))
-			}
-		}
-	}
-
-	// Copy net name into IPAM so not to drag Net struct around
-	n.IPAM.Name = n.Name
-
-	return n.IPAM, n.CNIVersion, nil
+	_ = "STUB: not implemented"
+	return nil, "", nil
 }
+
+// parse custom IP from env args
+
+// parse custom IPs from CNI args in network config
+
+// parse custom IPs from runtime configuration
+
+// If a single range (old-style config) is specified, prepend it to
+// the Ranges array
+
+// If a range is supplied as a runtime config, prepend it to the Ranges
+
+// Validate all ranges
+
+// CNI spec 0.2.0 and below supported only one v4 and v6 address
+
+// Check for overlaps
+
+// Copy net name into IPAM so not to drag Net struct around

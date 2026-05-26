@@ -15,24 +15,16 @@
 package ipam
 
 import (
-	"context"
-
-	"github.com/containernetworking/cni/pkg/invoke"
 	"github.com/containernetworking/cni/pkg/types"
 )
 
 func ExecAdd(plugin string, netconf []byte) (types.Result, error) {
-	return invoke.DelegateAdd(context.TODO(), plugin, netconf, nil)
+	_ = "STUB: not implemented"
+	return *new(types.Result), nil
 }
 
-func ExecCheck(plugin string, netconf []byte) error {
-	return invoke.DelegateCheck(context.TODO(), plugin, netconf, nil)
-}
+func ExecCheck(plugin string, netconf []byte) error { _ = "STUB: not implemented"; return nil }
 
-func ExecDel(plugin string, netconf []byte) error {
-	return invoke.DelegateDel(context.TODO(), plugin, netconf, nil)
-}
+func ExecDel(plugin string, netconf []byte) error { _ = "STUB: not implemented"; return nil }
 
-func ExecStatus(plugin string, netconf []byte) error {
-	return invoke.DelegateStatus(context.TODO(), plugin, netconf, nil)
-}
+func ExecStatus(plugin string, netconf []byte) error { _ = "STUB: not implemented"; return nil }
